@@ -46,7 +46,7 @@ def extract_sql(bronze, drops):
             pk = {'Sales.CustomerTransactions': 'CustomerTransactionID',
                   'Purchasing.SupplierTransactions': 'SupplierTransactionID',
                   'Sales.Invoices': 'InvoiceID'}[source]
-            ctes.append(f"{table} AS (SELECT * EXCEPT (_rn) FROM (SELECT *, row_number() OVER (PARTITION BY {pk} ORDER BY _drop DESC, CASE WHEN _op = 'upsert' THEN 1 ELSE 0 END DESC, _row_ordinal DESC) _rn FROM {bronze}.{table}_raw WHERE _drop <= '{d}') WHERE _rn = 1 AND _op <> 'delete')")
+            ctes.append(f"{table} AS (SELECT * EXCEPT (_rn) FROM (SELECT *, row_number() OVER (PARTITION BY {pk} ORDER BY _drop DESC, CASE WHEN _op = 'upsert' THEN 1 ELSE 0 END DESC) _rn FROM {bronze}.{table}_raw WHERE _drop <= '{d}') WHERE _rn = 1 AND _op <> 'delete')")
         halves = []
         for kind, alias, table in [('customer', 'ct', 'sales_customer_transactions'), ('supplier', 'st', 'purchasing_supplier_transactions')]:
             customer = kind == 'customer'
@@ -59,7 +59,10 @@ def extract_sql(bronze, drops):
             projection = ', '.join(f'try_cast({e} AS {t}) AS `{n}`' for e, t, n in zip(expressions, TYPES, NAMES))
             join = ' LEFT JOIN sales_invoices i ON ct.InvoiceID = i.InvoiceID' if customer else ''
             halves.append(f"SELECT {projection}, '{d}' _drop, '{kind}' _source_kind FROM {table} {alias}{join} WHERE {alias}.LastEditedWhen > '{lo}' AND {alias}.LastEditedWhen <= '{hi}'")
-        queries.append('(WITH ' + ', '.join(ctes) + ' ' + ' UNION ALL '.join(halves) + ')')
+        complete = ' AND '.join(
+            f"EXISTS (SELECT 1 FROM {bronze}.bronze_replay_log WHERE drop = '{d}' AND source_table = '{source}' AND status = 'PASS')"
+            for source in SOURCES)
+        queries.append('(WITH ' + ', '.join(ctes) + ' SELECT * FROM (' + ' UNION ALL '.join(halves) + ') WHERE ' + complete + ')')
     return ' UNION ALL '.join(queries)
 
 

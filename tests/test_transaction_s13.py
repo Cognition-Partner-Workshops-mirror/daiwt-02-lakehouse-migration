@@ -6,6 +6,7 @@ from decimal import Decimal
 from pathlib import Path
 
 import pytest
+import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('transaction_s13', ROOT / 'src/sql/units/transaction_s13.py')
@@ -103,3 +104,29 @@ def test_sql_retains_drop_and_union_all():
     assert "_drop <= 'D0'" in sql
     assert "_drop <= 'D1'" in sql
     assert 'coalesce(i.CustomerID, ct.CustomerID)' in sql
+    assert '_row_ordinal' not in sql
+    assert sql.count('bronze_replay_log') == 6
+    assert sql.count("status = 'PASS'") == 6
+    assert "CASE WHEN _op = 'upsert' THEN 1 ELSE 0 END DESC" in sql
+    assert "_op <> 'delete'" in sql
+
+
+def test_platform_interfaces():
+    from registry import load
+    registry = load()
+    entry = registry['wwi_transaction_to_silver']
+    assert entry == dict(job='wwi_transaction_to_silver', outputs=[],
+                         owns=['silver.transaction_changes', 'silver.transaction_quarantine'],
+                         depends_on=['bronze_landing_replay'])
+    p4 = json.loads((ROOT / 'src/bronze/tables.json').read_text())
+    tables = {t['source_table']: t for t in p4['tables']}
+    for source, table in s13.SOURCES.items():
+        assert tables[source]['table'] == table
+        assert tables[source]['primary_key']
+    resource = yaml.safe_load((ROOT / 'src/sql/units/transaction_s13.resources.yml').read_text())
+    job = resource['resources']['jobs']['wwi_transaction_to_silver']
+    assert [t['task_key'] for t in job['tasks']] == ['silver', 'parity']
+    assert {p['name'] for p in job['parameters']} == {'drop', 'last_cutoff', 'new_cutoff'}
+    params = job['tasks'][1]['notebook_task']['base_parameters']
+    for name in ('drop', 'last_cutoff', 'new_cutoff'):
+        assert params[name] == '{{job.parameters.' + name + '}}'
