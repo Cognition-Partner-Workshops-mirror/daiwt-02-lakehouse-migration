@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from src.movement.logic import EXPECTED, PROJECTION, SHARED, assert_parity, in_window, project, parse_timestamp
+from src.sql.units.wwi_movement_to_silver.logic import EXPECTED, PROJECTION, SHARED, assert_parity, in_window, project, parse_timestamp
 
 from src.bronze.bronze_landing_replay import reference_replay
 

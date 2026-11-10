@@ -7,11 +7,12 @@ resources:
       serverless: true
       libraries:
         - file:
-            path: ../src/movement/pipeline.py
+            path: ../src/sql/units/wwi_movement_to_silver/pipeline.py
       configuration:
         movement.catalog: ${var.catalog}
         movement.bronze_schema: ${var.bronze_schema}
         movement.silver_schema: ${var.silver_schema}
+        movement.source_path: ${workspace.file_path}/src/sql/units/wwi_movement_to_silver
   jobs:
     wwi_movement_to_silver:
       name: ${var.job_name_prefix}wwi_movement_to_silver
@@ -26,7 +27,7 @@ resources:
       tasks:
         - task_key: window
           notebook_task:
-            notebook_path: ../src/movement/tasks.py
+            notebook_path: ../src/sql/units/wwi_movement_to_silver/tasks.py
             base_parameters: &movement_parameters
               mode: window
               catalog: ${var.catalog}
@@ -43,7 +44,7 @@ resources:
           depends_on:
             - task_key: pipeline_update
           notebook_task:
-            notebook_path: ../src/movement/tasks.py
+            notebook_path: ../src/sql/units/wwi_movement_to_silver/tasks.py
             base_parameters:
               <<: *movement_parameters
               mode: parity
