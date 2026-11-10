@@ -1,0 +1,106 @@
+resources:
+  pipelines:
+    stock_item_silver:
+      name: ${var.job_name_prefix}wwi_stock_item_silver
+      catalog: ${var.catalog}
+      schema: ${var.silver_schema}
+      serverless: true
+      libraries:
+        - file:
+            path: ../src/stock_item/pipeline.py
+      configuration:
+        s05.catalog: ${var.catalog}
+        s05.bronze_schema: ${var.bronze_schema}
+  jobs:
+    wwi_stock_item_to_silver:
+      name: ${var.job_name_prefix}wwi_stock_item_to_silver
+      max_concurrent_runs: 1
+      permissions:
+        - group_name: users
+          level: CAN_VIEW
+      tasks:
+        - task_key: bronze_load_D0
+          notebook_task:
+            notebook_path: ../src/stock_item/bronze_load.py
+            base_parameters:
+              catalog: ${var.catalog}
+              bronze_schema: ${var.bronze_schema}
+              golden_path: ${var.golden_path}
+              drop: D0
+        - task_key: refresh_D0
+          depends_on:
+            - task_key: bronze_load_D0
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.stock_item_silver.id}
+            full_refresh: true
+        - task_key: parity_D0
+          depends_on:
+            - task_key: refresh_D0
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file:
+              path: ../src/stock_item/parity.sql
+            parameters:
+              catalog: ${var.catalog}
+              silver_schema: ${var.silver_schema}
+              golden_path: ${var.golden_path}
+              drop: D0
+              previous_drop: D0
+        - task_key: bronze_load_D1
+          depends_on:
+            - task_key: parity_D0
+          notebook_task:
+            notebook_path: ../src/stock_item/bronze_load.py
+            base_parameters:
+              catalog: ${var.catalog}
+              bronze_schema: ${var.bronze_schema}
+              golden_path: ${var.golden_path}
+              drop: D1
+        - task_key: refresh_D1
+          depends_on:
+            - task_key: bronze_load_D1
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.stock_item_silver.id}
+            full_refresh: true
+        - task_key: parity_D1
+          depends_on:
+            - task_key: refresh_D1
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file:
+              path: ../src/stock_item/parity.sql
+            parameters:
+              catalog: ${var.catalog}
+              silver_schema: ${var.silver_schema}
+              golden_path: ${var.golden_path}
+              drop: D1
+              previous_drop: D0
+        - task_key: bronze_load_D2
+          depends_on:
+            - task_key: parity_D1
+          notebook_task:
+            notebook_path: ../src/stock_item/bronze_load.py
+            base_parameters:
+              catalog: ${var.catalog}
+              bronze_schema: ${var.bronze_schema}
+              golden_path: ${var.golden_path}
+              drop: D2
+        - task_key: refresh_D2
+          depends_on:
+            - task_key: bronze_load_D2
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.stock_item_silver.id}
+            full_refresh: true
+        - task_key: parity_D2
+          depends_on:
+            - task_key: refresh_D2
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file:
+              path: ../src/stock_item/parity.sql
+            parameters:
+              catalog: ${var.catalog}
+              silver_schema: ${var.silver_schema}
+              golden_path: ${var.golden_path}
+              drop: D2
+              previous_drop: D1
