@@ -1,0 +1,60 @@
+resources:
+  pipelines:
+    movement_silver:
+      name: ${var.job_name_prefix}movement_silver
+      catalog: ${var.catalog}
+      schema: ${var.silver_schema}
+      serverless: true
+      libraries:
+        - file:
+            path: ../src/movement/pipeline.py
+      configuration:
+        movement.catalog: ${var.catalog}
+        movement.bronze_schema: ${var.bronze_schema}
+        movement.silver_schema: ${var.silver_schema}
+  jobs:
+    wwi_movement_to_silver:
+      name: ${var.job_name_prefix}wwi_movement_to_silver
+      max_concurrent_runs: 1
+      permissions:
+        - group_name: users
+          level: CAN_VIEW
+      parameters:
+        - name: drop
+          default: D0
+        - name: last_cutoff
+          default: '2016-06-06 12:31:17.0000000'
+        - name: new_cutoff
+          default: '2016-06-06 12:31:17.0000000'
+      tasks:
+        - task_key: bronze_ingest
+          notebook_task:
+            notebook_path: ../src/movement/tasks.py
+            base_parameters: &movement_parameters
+              mode: ingest
+              catalog: ${var.catalog}
+              bronze_schema: ${var.bronze_schema}
+              silver_schema: ${var.silver_schema}
+              golden_path: ${var.golden_path}
+        - task_key: window
+          depends_on:
+            - task_key: bronze_ingest
+          notebook_task:
+            notebook_path: ../src/movement/tasks.py
+            base_parameters:
+              <<: *movement_parameters
+              mode: window
+        - task_key: pipeline_update
+          depends_on:
+            - task_key: window
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.movement_silver.id}
+            full_refresh: true
+        - task_key: parity
+          depends_on:
+            - task_key: pipeline_update
+          notebook_task:
+            notebook_path: ../src/movement/tasks.py
+            base_parameters:
+              <<: *movement_parameters
+              mode: parity
