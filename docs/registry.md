@@ -5,17 +5,17 @@ For example (illustrative entries; register only implemented jobs):
 
 ```json
 {
-  "silver_city": {
-    "job": "silver_city_job",
+  "wwi_city_to_silver": {
+    "job": "wwi_city_to_silver",
     "outputs": [],
-    "owns": ["silver.city"],
-    "depends_on": ["bronze"]
+    "owns": ["silver.city_changes", "silver.city_changes_quarantine"],
+    "depends_on": ["bronze_landing_replay"]
   },
-  "gold_city": {
-    "job": "gold_city_job",
+  "wwi_dim_city": {
+    "job": "wwi_dim_city",
     "outputs": ["gold.dim_city"],
     "owns": [],
-    "depends_on": ["silver_city"]
+    "depends_on": ["wwi_city_to_silver"]
   }
 }
 ```
