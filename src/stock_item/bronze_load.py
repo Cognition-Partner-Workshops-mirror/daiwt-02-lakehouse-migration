@@ -9,8 +9,8 @@ for name in ("catalog", "bronze_schema", "golden_path", "drop"):
     dbutils.widgets.text(name, "")
 catalog, schema, golden, drop = [dbutils.widgets.get(n) for n in
                                 ("catalog", "bronze_schema", "golden_path", "drop")]
-if catalog == "daiwt_02_mig_prod":
-    raise ValueError("S05 replay must not write production")
+if catalog not in ("daiwt_02_mig_dev", "daiwt_02_mig_prod"):
+    raise ValueError("Unsupported S05 catalog")
 if drop not in ("D0", "D1", "D2"):
     raise ValueError(drop)
 bronze = f"`{catalog}`.`{schema}`"

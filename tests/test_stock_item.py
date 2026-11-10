@@ -1,3 +1,4 @@
+import ast
 import csv
 import json
 import re
@@ -12,6 +13,22 @@ from stock_item.model import COLUMNS, RULES, SOURCES, TYPES, changes_sql, dateti
 
 ROOT = Path(__file__).resolve().parents[1]
 GOLDEN = ROOT / "golden"
+
+
+@pytest.mark.parametrize("catalog,allowed", [
+    ("daiwt_02_mig_dev", True), ("daiwt_02_mig_prod", True), ("other", False),
+])
+def test_bronze_catalog_guard(catalog, allowed):
+    tree = ast.parse((ROOT / "src/stock_item/bronze_load.py").read_text())
+    guard = next(node for node in tree.body if isinstance(node, ast.If)
+                 and isinstance(node.test, ast.Compare)
+                 and isinstance(node.test.left, ast.Name) and node.test.left.id == "catalog")
+    code = compile(ast.Module(body=[guard], type_ignores=[]), "<catalog_guard>", "exec")
+    if allowed:
+        exec(code, {"catalog": catalog})
+    else:
+        with pytest.raises(ValueError):
+            exec(code, {"catalog": catalog})
 
 
 def rows(path):
