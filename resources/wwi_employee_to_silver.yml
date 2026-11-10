@@ -5,6 +5,9 @@ resources:
       catalog: ${var.catalog}
       target: ${var.silver_schema}
       serverless: true
+      permissions:
+        - group_name: users
+          level: CAN_VIEW
       configuration:
         bronze_catalog: ${var.catalog}
         bronze_schema: ${var.bronze_schema}

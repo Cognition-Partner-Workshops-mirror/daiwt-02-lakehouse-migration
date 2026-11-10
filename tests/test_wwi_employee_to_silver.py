@@ -130,6 +130,7 @@ def test_employee_bundle_registry_and_harness(monkeypatch):
             assert task["pipeline_task"]["pipeline_id"] == "${resources.pipelines.wwi_employee_pipeline.id}"
     pipeline = resource["pipelines"]["wwi_employee_pipeline"]
     assert pipeline["serverless"] is True
+    assert pipeline["permissions"] == [{"group_name": "users", "level": "CAN_VIEW"}]
     assert pipeline["catalog"] == "${var.catalog}"
     assert pipeline["target"] == "${var.silver_schema}"
     registry = json.loads((ROOT / "src/sql/units/registry.json").read_text())

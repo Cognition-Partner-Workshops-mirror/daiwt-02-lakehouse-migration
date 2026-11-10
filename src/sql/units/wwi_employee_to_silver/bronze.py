@@ -15,7 +15,7 @@ if any(not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", v) for v in (catalog, bronze_
     raise ValueError("Invalid catalog/schema")
 namespace = f"`{catalog}`.`{bronze_schema}`"
 control = f"{namespace}.employee_drop_window"
-manifest = json.loads(spark.read.option("wholetext", True).text(golden_path + "/manifest.json").first()[0])
+manifest = json.loads(spark.read.text(golden_path + "/manifest.json", wholetext=True).first()[0])
 
 
 def read_csv(path, columns):
