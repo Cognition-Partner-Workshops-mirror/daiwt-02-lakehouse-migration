@@ -1,0 +1,48 @@
+resources:
+  pipelines:
+    s06_supplier_pipeline:
+      name: ${var.job_name_prefix}s06-supplier-silver
+      catalog: ${var.catalog}
+      schema: ${var.silver_schema}
+      serverless: true
+      root_path: ../src/sql/units/s06_supplier
+      libraries:
+        - file:
+            path: ../src/sql/units/s06_supplier/pipeline.py
+      configuration:
+        s06.silver: ${var.catalog}.${var.silver_schema}
+  jobs:
+    s06_supplier_job:
+      name: ${var.job_name_prefix}s06-supplier-verify
+      max_concurrent_runs: 1
+      parameters:
+        - name: drop
+          default: ${var.drop}
+        - name: last_cutoff
+          default: ${var.last_cutoff}
+        - name: new_cutoff
+          default: ${var.new_cutoff}
+      tasks:
+        - task_key: run_window
+          notebook_task:
+            notebook_path: ../src/sql/units/s06_supplier/run_window.py
+            base_parameters:
+              catalog: ${var.catalog}
+              silver_schema: ${var.silver_schema}
+              drop: "{{job.parameters.drop}}"
+              last_cutoff: "{{job.parameters.last_cutoff}}"
+              new_cutoff: "{{job.parameters.new_cutoff}}"
+        - task_key: silver
+          depends_on: [{task_key: run_window}]
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.s06_supplier_pipeline.id}
+            full_refresh: true
+        - task_key: parity
+          depends_on: [{task_key: silver}]
+          notebook_task:
+            notebook_path: ../src/sql/units/s06_supplier/parity.py
+            base_parameters:
+              catalog: ${var.catalog}
+              silver_schema: ${var.silver_schema}
+              golden_path: ${var.golden_path}
+              drop: "{{job.parameters.drop}}"
