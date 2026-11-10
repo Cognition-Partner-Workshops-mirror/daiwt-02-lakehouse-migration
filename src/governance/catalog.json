@@ -1,0 +1,52 @@
+{
+  "bronze_entities": {
+    "Cities": "city", "Countries": "city", "StateProvinces": "city",
+    "PaymentMethods": "payment_method", "People": "employee",
+    "TransactionTypes": "transaction_type", "PurchaseOrderLines": "purchase",
+    "PurchaseOrders": "purchase", "SupplierCategories": "supplier",
+    "SupplierTransactions": "transaction", "Suppliers": "supplier",
+    "BuyingGroups": "customer", "CustomerCategories": "customer",
+    "CustomerTransactions": "transaction", "Customers": "customer",
+    "InvoiceLines": "sale", "Invoices": "sale", "OrderLines": "order",
+    "Orders": "order", "Colors": "stock_item", "PackageTypes": "stock_item",
+    "StockItemHoldings": "stock_holding", "StockItemTransactions": "movement",
+    "StockItems": "stock_item"
+  },
+  "silver": {
+    "city_changes": {"source_entity": "city", "legacy_object": "Integration.GetCityUpdates", "comment": "WWI city change events."},
+    "customer_changes": {"source_entity": "customer", "legacy_object": "Integration.GetCustomerUpdates", "comment": "WWI customer change events."},
+    "employee_changes": {"source_entity": "employee", "legacy_object": "Integration.GetEmployeeUpdates", "comment": "WWI employee change events."},
+    "payment_method_changes": {"source_entity": "payment_method", "legacy_object": "Integration.GetPaymentMethodUpdates", "comment": "WWI payment method change events."},
+    "stock_item_changes": {"source_entity": "stock_item", "legacy_object": "Integration.GetStockItemUpdates", "comment": "WWI stock item change events."},
+    "supplier_changes": {"source_entity": "supplier", "legacy_object": "Integration.GetSupplierUpdates", "comment": "WWI supplier change events."},
+    "transaction_type_changes": {"source_entity": "transaction_type", "legacy_object": "Integration.GetTransactionTypeUpdates", "comment": "WWI transaction type change events."},
+    "movement_changes": {"source_entity": "movement", "legacy_object": "Integration.GetMovementUpdates", "comment": "WWI stock movement events."},
+    "order_changes": {"source_entity": "order", "legacy_object": "Integration.GetOrderUpdates", "comment": "WWI order line change events."},
+    "purchase_changes": {"source_entity": "purchase", "legacy_object": "Integration.GetPurchaseUpdates", "comment": "WWI purchase line change events."},
+    "sale_changes": {"source_entity": "sale", "legacy_object": "Integration.GetSaleUpdates", "comment": "WWI invoice line change events."},
+    "stock_holding_changes": {"source_entity": "stock_holding", "legacy_object": "Integration.GetStockHoldingUpdates", "comment": "WWI stock holding snapshots."},
+    "stock_holding_snapshot": {"source_entity": "stock_holding", "legacy_object": "Integration.GetStockHoldingUpdates", "comment": "WWI stock holding snapshots."},
+    "transaction_changes": {"source_entity": "transaction", "legacy_object": "Integration.GetTransactionUpdates", "comment": "WWI financial transaction events."},
+    "date": {"source_entity": "date", "legacy_object": "Integration.PopulateDateDimensionForYear", "comment": "WWI compatibility calendar."}
+  },
+  "gold": {
+    "dim_city": {"source_entity": "city", "legacy_object": "Dimension.City", "comment": "WWI city dimension."},
+    "dim_customer": {"source_entity": "customer", "legacy_object": "Dimension.Customer", "comment": "WWI customer dimension."},
+    "dim_date": {"source_entity": "date", "legacy_object": "Dimension.Date", "comment": "WWI date dimension."},
+    "dim_employee": {"source_entity": "employee", "legacy_object": "Dimension.Employee", "comment": "WWI employee dimension."},
+    "dim_payment_method": {"source_entity": "payment_method", "legacy_object": "Dimension.Payment Method", "comment": "WWI payment method dimension."},
+    "dim_stock_item": {"source_entity": "stock_item", "legacy_object": "Dimension.Stock Item", "comment": "WWI stock item dimension."},
+    "dim_supplier": {"source_entity": "supplier", "legacy_object": "Dimension.Supplier", "comment": "WWI supplier dimension."},
+    "dim_transaction_type": {"source_entity": "transaction_type", "legacy_object": "Dimension.Transaction Type", "comment": "WWI transaction type dimension."},
+    "fact_movement": {"source_entity": "movement", "legacy_object": "Fact.Movement", "comment": "WWI stock movement fact."},
+    "fact_order": {"source_entity": "order", "legacy_object": "Fact.Order", "comment": "WWI order fact."},
+    "fact_purchase": {"source_entity": "purchase", "legacy_object": "Fact.Purchase", "comment": "WWI purchase fact."},
+    "fact_sale": {"source_entity": "sale", "legacy_object": "Fact.Sale", "comment": "WWI sale fact."},
+    "fact_stock_holding": {"source_entity": "stock_holding", "legacy_object": "Fact.Stock Holding", "comment": "WWI stock holding fact."},
+    "fact_transaction": {"source_entity": "transaction", "legacy_object": "Fact.Transaction", "comment": "WWI financial transaction fact."},
+    "report_sale_by_day": {"source_entity": "report", "legacy_object": "sale-by-day", "comment": "WWI sales by invoice date report."},
+    "report_customer_history": {"source_entity": "report", "legacy_object": "customer-history", "comment": "WWI customer history report."},
+    "integration_lineage": {"source_entity": "integration", "legacy_object": "Integration.Lineage", "comment": "WWI load lineage compatibility table."},
+    "integration_etl_cutoff": {"source_entity": "integration", "legacy_object": "Integration.ETL Cutoff", "comment": "WWI extraction cutoff compatibility table."}
+  }
+}

@@ -1,0 +1,31 @@
+resources:
+  jobs:
+    governance:
+      name: ${var.job_name_prefix}governance
+      max_concurrent_runs: 1
+      permissions:
+        - group_name: users
+          level: CAN_VIEW
+      parameters:
+        - name: drop
+          default: ${var.drop}
+        - name: last_cutoff
+          default: ${var.last_cutoff}
+        - name: new_cutoff
+          default: ${var.new_cutoff}
+      environments:
+        - environment_key: governance
+          spec:
+            environment_version: "2"
+      tasks:
+        - task_key: governance
+          environment_key: governance
+          max_retries: 0
+          timeout_seconds: 3600
+          spark_python_task:
+            python_file: ../src/governance/apply_governance.py
+            parameters:
+              - --catalog
+              - ${var.catalog}
+              - --schemas
+              - ${var.bronze_schema},${var.silver_schema},${var.gold_schema}
