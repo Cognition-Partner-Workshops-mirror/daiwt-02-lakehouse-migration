@@ -4,7 +4,9 @@
 strict parity for the runner's `drop`, `last_cutoff`, and `new_cutoff` parameters.
 It owns only `silver.transaction_changes` and `silver.transaction_quarantine`;
 gold belongs to G14. The registry dependency is `bronze_landing_replay` (P4).
-P6 is not required or referenced.
+P6 is not required: it exposes valid-time current/archive pairs from the latest
+bronze replay, whereas S13's three non-temporal sources need per-drop snapshots
+from P4 raw history, and none has a P6 temporal pair.
 
 ## P4 interface
 
