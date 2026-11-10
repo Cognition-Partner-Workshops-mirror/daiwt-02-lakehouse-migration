@@ -10,7 +10,7 @@ SQL Server `WideWorldImporters`, `WideWorldImportersDW` and SSIS packages.
 | `databricks.yml` | Dev and production bundle targets |
 | `src/sql/units/` | Migrated SQL files and `registry.json`; currently zero units |
 | `src/parity/parity_check.py` | Golden CSV multiset comparison using SDK Files and SQL Statements APIs |
-| `ci/dev_verify.sh` | Deploy dev, select changed units, run their bundle jobs and parity |
+| `ci/dev_verify.sh` | Deploy dev, run all registered unit jobs and parity |
 | `ci/attest.py` | Fail-closed Markdown attestation from parity JSON |
 | `ci/reset.sh`, `ci/sweep_dev.sh` | Scoped cleanup |
 | `tests/` | Offline pytest tests |
@@ -70,19 +70,20 @@ Registered outputs report PASS only for exact row-count and content matches.
    {"load_sale": {"job": "load_sale", "outputs": ["gold.fact_sale"]}}
    ```
 
-3. Add offline tests. Each output has exactly one producer. Units must be independent
-   for changed-unit execution; dependency orchestration is not modeled by this scaffold.
+3. Add offline tests. Each output has exactly one producer. Registry insertion order
+   determines job execution order; list upstream units before their consumers.
 
 `classify_changes.sh` compares `BASE_SHA`/`HEAD_SHA` (default `origin/main`/`HEAD`).
 SQL changes select their unit; registry or shared framework changes select all units.
-README, workflow and test-only edits do not select unit jobs. Parity always checks
-all registered golden outputs, regardless of which units ran.
+README, workflow and test-only edits do not select unit jobs. Classification is recorded
+as diagnostic evidence. Dev verification runs all registered units so a fresh PR schema
+contains every registered output checked by parity.
 
 ## CI
 
 | Workflow | Trigger and behavior |
 | --- | --- |
-| `pr.yml` | PRs to `main` or `pre-migration`; offline tests, strict dev validation, changed-unit verification, sticky parity attestation and evidence artifact |
+| `pr.yml` | PRs to `main` or `pre-migration`; offline tests, strict dev validation, full registered-unit verification, sticky parity attestation and evidence artifact |
 | `deploy-prod.yml` | Push to `main` or manual; strict prod validation, bundle deployment and prod parity |
 | `reset.yml` | Manual `target=dev|prod`; runs only if `confirm` exactly matches target |
 | `dev-sweep.yml` | Manual; removes dev PR deployments for closed PRs |

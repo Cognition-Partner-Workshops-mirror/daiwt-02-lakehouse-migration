@@ -7,5 +7,5 @@ mkdir -p out
 databricks bundle validate --strict -t dev --var "schema_suffix=$suffix"
 databricks bundle deploy -t dev --var "schema_suffix=$suffix"
 bash ci/classify_changes.sh > out/changed-units.json
-python ci/run_units.py "$suffix" out/changed-units.json
+python ci/run_units.py "$suffix"
 python src/parity/parity_check.py --suffix "$suffix"
