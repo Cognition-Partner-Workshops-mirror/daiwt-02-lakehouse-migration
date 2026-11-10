@@ -5,7 +5,7 @@ from pyspark import pipelines as dp
 from pyspark.sql import functions as F
 
 sys.path.insert(0, spark.conf.get("sale.source_path"))
-from s11_sale.sale import COLUMNS, SOURCES, namespace, quote, sale_query
+from wwi_sale_to_silver.sale import COLUMNS, SOURCES, namespace, quote, sale_query
 
 bronze = namespace(spark.conf.get("sale.catalog"), spark.conf.get("sale.bronze_schema"))
 properties = {"delta.columnMapping.mode": "name", "delta.feature.timestampNtz": "supported"}

@@ -3,8 +3,8 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path.cwd().parent))
-from s11_sale.runtime import manifest_at, validate_bronze
-from s11_sale.sale import drop_window, target_namespace
+from wwi_sale_to_silver.runtime import manifest_at, validate_bronze
+from wwi_sale_to_silver.sale import drop_window, target_namespace
 
 for name in ("catalog", "bronze_schema", "golden_path", "drop", "last_cutoff", "new_cutoff"):
     dbutils.widgets.text(name, "")

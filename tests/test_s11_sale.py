@@ -7,9 +7,11 @@ from pathlib import Path
 import pytest
 import yaml
 
-from s11_sale.sale import (COLUMNS, SOURCES, assert_parity, cutoff, drop_window,
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src/sql/units"))
+
+from wwi_sale_to_silver.sale import (COLUMNS, SOURCES, assert_parity, cutoff, drop_window,
                            namespace, sale_query, target_namespace)
-from s11_sale.runtime import validate_bronze
+from wwi_sale_to_silver.runtime import validate_bronze
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = json.loads((ROOT / "golden/manifest.json").read_text())
@@ -82,7 +84,7 @@ def test_registry_and_replay_bundle():
     assert spec["outputs"] == []
     assert spec["owns"] == ["silver.sale_changes", "silver.sale_changes_quarantine"]
     assert spec["depends_on"] == ["bronze_landing_replay"]
-    resources = yaml.safe_load((ROOT / "src/s11_sale/resources.yml").read_text())["resources"]
+    resources = yaml.safe_load((ROOT / "resources/wwi_sale_to_silver.job.yml").read_text())["resources"]
     assert list(resources["jobs"]) == [spec["job"]]
     assert resources["pipelines"]["wwi_sale_silver"]["serverless"] is True
     job = resources["jobs"][spec["job"]]
@@ -99,10 +101,10 @@ def test_pipeline_registration_without_file_global(monkeypatch):
     dp = SimpleNamespace(temporary_view=decorator, materialized_view=decorator, expect=decorator)
     monkeypatch.setitem(sys.modules, "pyspark", SimpleNamespace(pipelines=dp))
     monkeypatch.setitem(sys.modules, "pyspark.sql", SimpleNamespace(functions=SimpleNamespace()))
-    settings = {"sale.source_path": str(ROOT / "src"), "sale.catalog": "daiwt_02_mig_dev",
+    settings = {"sale.source_path": str(ROOT / "src/sql/units"), "sale.catalog": "daiwt_02_mig_dev",
                 "sale.bronze_schema": "bronze_pr_20"}
     globals_ = {"spark": SimpleNamespace(conf=SimpleNamespace(get=settings.__getitem__))}
-    path = ROOT / "src/s11_sale/pipeline.py"
+    path = ROOT / "src/sql/units/wwi_sale_to_silver/pipeline.py"
     exec(compile(path.read_text(), str(path), "exec"), globals_)
     assert callable(globals_["sale_changes"])
     assert callable(globals_["sale_changes_quarantine"])
@@ -203,7 +205,7 @@ def test_spark_multiset_parity(spark):
 
 def test_golden_d0_d1_d2_reconstructed_sources_and_parity(spark):
     from bronze.bronze_landing_replay import typed_select
-    from s11_sale.runtime import parity_frames, read_csv
+    from wwi_sale_to_silver.runtime import parity_frames, read_csv
 
     spec = json.loads((ROOT / "src/bronze/tables.json").read_text())
     tables = {table["table"]: table for table in spec["tables"]}

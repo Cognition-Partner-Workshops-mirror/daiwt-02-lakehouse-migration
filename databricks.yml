@@ -3,7 +3,6 @@ bundle:
 
 include:
   - resources/*.yml
-  - src/s11_sale/resources.yml
 
 variables:
   drop:

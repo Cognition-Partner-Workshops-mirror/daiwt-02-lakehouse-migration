@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path.cwd().parent))
-from s11_sale.runtime import check
+from wwi_sale_to_silver.runtime import check
 
 for name, default in [("catalog", ""), ("bronze_schema", ""), ("silver_schema", ""),
                       ("golden_path", ""), ("drop", "D0"), ("last_cutoff", ""), ("new_cutoff", "")]:

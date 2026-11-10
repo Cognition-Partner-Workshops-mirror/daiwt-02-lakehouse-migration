@@ -2,7 +2,7 @@
 import json
 from pathlib import Path
 
-from s11_sale.sale import (COLUMNS, ID_DIMENSIONS, SHARED, assert_parity,
+from wwi_sale_to_silver.sale import (COLUMNS, ID_DIMENSIONS, SHARED, assert_parity,
                            cutoff, drop_window, quote, target_namespace)
 
 
