@@ -7,6 +7,10 @@ replay, with parity after **each** drop. To run one drop after its predecessor:
 databricks bundle run -t dev --var schema_suffix=pr_<n> wwi_sale_to_silver --params drop=D1
 ```
 
+Replay uses explicit `d0 -> d1 -> d2` dependencies, not loop scheduling.
+The internal drop job uses `sale_*` parameters so parent job parameter pushdown
+cannot replace a child drop/window with the parent's `drop=all` selector.
+
 Optional `last_cutoff` / `new_cutoff` parameters must equal the manifest's **Sale**
 entry. Empty parameters resolve from the manifest (not global window dates).
 D0 uses `2016-06-06 12:31:17.0000000` for both cutoffs and must produce zero

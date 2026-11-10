@@ -14,8 +14,10 @@ drop = dbutils.widgets.get("drop")
 last, new = dbutils.widgets.get("last_cutoff"), dbutils.widgets.get("new_cutoff")
 if drop == "all" and (last or new):
     raise ValueError("Explicit cutoffs require one drop, not all")
-runs = []
-for name in (["D0", "D1", "D2"] if drop == "all" else [drop]):
-    start, end = drop_window(manifest, name, last, new)
-    runs.append({"drop": name, "last_cutoff": start, "new_cutoff": end})
-dbutils.jobs.taskValues.set(key="runs", value=runs)
+for name in ["D0", "D1", "D2"]:
+    start, end = drop_window(manifest, name)
+    dbutils.jobs.taskValues.set(key=f"{name.lower()}_last", value=start)
+    dbutils.jobs.taskValues.set(key=f"{name.lower()}_new", value=end)
+start, end = drop_window(manifest, "D0" if drop == "all" else drop, last, new)
+dbutils.jobs.taskValues.set(key="single_last", value=start)
+dbutils.jobs.taskValues.set(key="single_new", value=end)

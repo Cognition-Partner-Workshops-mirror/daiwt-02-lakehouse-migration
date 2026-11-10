@@ -31,31 +31,62 @@ resources:
             notebook_path: ./plan.py
             base_parameters:
               golden_path: ${var.golden_path}
-        - task_key: replay
+        - task_key: replay_all
           depends_on:
             - task_key: plan
-          for_each_task:
-            inputs: "{{tasks.plan.values.runs}}"
-            concurrency: 1
-            task:
-              task_key: drop
-              run_job_task:
-                job_id: ${resources.jobs.wwi_sale_drop.id}
-                job_parameters:
-                  drop: "{{input.drop}}"
-                  last_cutoff: "{{input.last_cutoff}}"
-                  new_cutoff: "{{input.new_cutoff}}"
+          condition_task:
+            op: EQUAL_TO
+            left: "{{job.parameters.drop}}"
+            right: all
+        - task_key: d0
+          depends_on:
+            - task_key: replay_all
+              outcome: "true"
+          run_job_task:
+            job_id: ${resources.jobs.wwi_sale_drop.id}
+            job_parameters:
+              sale_drop: D0
+              sale_last_cutoff: "{{tasks.plan.values.d0_last}}"
+              sale_new_cutoff: "{{tasks.plan.values.d0_new}}"
+        - task_key: d1
+          depends_on:
+            - task_key: d0
+          run_job_task:
+            job_id: ${resources.jobs.wwi_sale_drop.id}
+            job_parameters:
+              sale_drop: D1
+              sale_last_cutoff: "{{tasks.plan.values.d1_last}}"
+              sale_new_cutoff: "{{tasks.plan.values.d1_new}}"
+        - task_key: d2
+          depends_on:
+            - task_key: d1
+          run_job_task:
+            job_id: ${resources.jobs.wwi_sale_drop.id}
+            job_parameters:
+              sale_drop: D2
+              sale_last_cutoff: "{{tasks.plan.values.d2_last}}"
+              sale_new_cutoff: "{{tasks.plan.values.d2_new}}"
+        - task_key: single_drop
+          depends_on:
+            - task_key: replay_all
+              outcome: "false"
+          run_job_task:
+            job_id: ${resources.jobs.wwi_sale_drop.id}
+            job_parameters:
+              sale_drop: "{{job.parameters.drop}}"
+              sale_last_cutoff: "{{tasks.plan.values.single_last}}"
+              sale_new_cutoff: "{{tasks.plan.values.single_new}}"
     wwi_sale_drop:
       name: ${var.job_name_prefix}wwi_sale_drop
       max_concurrent_runs: 1
       queue:
         enabled: true
       parameters:
-        - name: drop
+        - name: sale_drop
           default: D0
-        - name: last_cutoff
+        - name: sale_last_cutoff
           default: ""
-        - name: new_cutoff
+        - name: sale_new_cutoff
           default: ""
       tasks:
         - task_key: bronze

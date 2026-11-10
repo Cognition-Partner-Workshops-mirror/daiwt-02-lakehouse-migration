@@ -94,7 +94,15 @@ def test_registry_and_replay_bundle():
     assert spec["job"] in resources["jobs"]
     assert resources["pipelines"]["wwi_sale_silver"]["serverless"] is True
     assert [t["task_key"] for t in resources["jobs"]["wwi_sale_drop"]["tasks"]] == ["bronze", "silver", "parity"]
-    assert resources["jobs"][spec["job"]]["tasks"][1]["for_each_task"]["concurrency"] == 1
+    parent = resources["jobs"][spec["job"]]
+    tasks = {task["task_key"]: task for task in parent["tasks"]}
+    assert tasks["d0"]["depends_on"] == [{"task_key": "replay_all", "outcome": "true"}]
+    assert tasks["d1"]["depends_on"] == [{"task_key": "d0"}]
+    assert tasks["d2"]["depends_on"] == [{"task_key": "d1"}]
+    assert tasks["single_drop"]["depends_on"] == [{"task_key": "replay_all", "outcome": "false"}]
+    child_params = {p["name"] for p in resources["jobs"]["wwi_sale_drop"]["parameters"]}
+    assert child_params.isdisjoint(p["name"] for p in parent["parameters"])
+    assert set(tasks["d0"]["run_job_task"]["job_parameters"]) == child_params
 
 
 @pytest.fixture(scope="module")
