@@ -5,17 +5,17 @@ CREATE OR REFRESH MATERIALIZED VIEW transaction_type_changes (
   CONSTRAINT valid_interval EXPECT (valid_from < valid_to)
 ) AS
 WITH versions AS (
-  SELECT * FROM ${s07.catalog}.${s07.silver_schema}.v_transaction_types_asof
+  SELECT * FROM ${s07.catalog}.${s07.silver_schema}.s07_transaction_types_history
 ), events AS (
-  SELECT v.TransactionTypeID, v.ValidFrom
+  SELECT v.TransactionTypeID, v.valid_from
   FROM versions v CROSS JOIN ${s07.catalog}.${s07.silver_schema}.s07_run_window w
-  WHERE v.ValidFrom > w.last_cutoff AND v.ValidFrom <= w.new_cutoff
+  WHERE v.valid_from > w.last_cutoff AND v.valid_from <= w.new_cutoff
 ), staged AS (
   SELECT v.TransactionTypeID AS wwi_transaction_type_id,
-         v.TransactionTypeName AS transaction_type, v.ValidFrom AS valid_from
+         v.TransactionTypeName AS transaction_type, v.valid_from
   FROM events e JOIN versions v
     ON v.TransactionTypeID = e.TransactionTypeID
-   AND v.ValidFrom <= e.ValidFrom AND e.ValidFrom < v.ValidTo
+   AND v.valid_from <= e.valid_from AND e.valid_from < v.valid_to
 )
 SELECT s.wwi_transaction_type_id, s.transaction_type, s.valid_from,
        coalesce((SELECT min(n.valid_from) FROM staged n

@@ -17,23 +17,6 @@ def window(manifest, drop):
     return INITIAL_CUTOFF if drop == "D0" else cutoff("last_cutoff"), cutoff("new_cutoff")
 
 
-def replay(current, upserts, deletes, archive=False):
-    if archive:
-        counts = Counter(tuple(row[c] for c in SOURCE_COLUMNS) for row in current)
-        for row in deletes:
-            key = tuple(row[c] for c in SOURCE_COLUMNS)
-            if counts[key] == 0:
-                raise ValueError("Archive delete has no matching occurrence")
-            counts[key] -= 1
-        counts.update(tuple(row[c] for c in SOURCE_COLUMNS) for row in upserts)
-        return [dict(zip(SOURCE_COLUMNS, key)) for key, n in counts.items() for _ in range(n)]
-    rows = {row["TransactionTypeID"]: row for row in current}
-    for row in deletes:
-        rows.pop(row["TransactionTypeID"], None)
-    rows.update((row["TransactionTypeID"], row) for row in upserts)
-    return list(rows.values())
-
-
 def extract(versions, last_cutoff, new_cutoff):
     staged = []
     for event in versions:

@@ -5,11 +5,22 @@ from pathlib import Path
 
 import pytest
 
+from src.bronze.bronze_landing_replay import reference_replay
 from src.s07.transaction_type import (
-    COLUMNS, END_OF_TIME, INITIAL_CUTOFF, assert_parity, expected_rows, extract, replay, window,
+    COLUMNS, END_OF_TIME, INITIAL_CUTOFF, SOURCE_COLUMNS, assert_parity, expected_rows, extract, window,
 )
 
 ROOT = Path(__file__).resolve().parents[1] / "golden"
+
+
+def replay(current, upserts, deletes, archive=False):
+    spec = {"columns": [{"name": c} for c in SOURCE_COLUMNS],
+            "primary_key": [] if archive else ["TransactionTypeID"]}
+    def rows(values, columns=SOURCE_COLUMNS):
+        return [[row[c] for c in columns] for row in values]
+    result = reference_replay(spec, rows(current), rows(upserts),
+                              rows(deletes, SOURCE_COLUMNS if archive else ["TransactionTypeID"]))
+    return [dict(zip(SOURCE_COLUMNS, row)) for row in result]
 
 
 def csv_rows(path):
@@ -42,7 +53,7 @@ def test_replay_pk_and_archive_multiplicity():
     assert replay([old], [new], [{"TransactionTypeID": "1"}]) == [new]
     assert replay([old, old], [new], [old], archive=True) == [old, new]
     assert replay([], [], [], archive=True) == []
-    with pytest.raises(ValueError, match="no matching occurrence"):
+    with pytest.raises(ValueError, match="Deleted row absent"):
         replay([], [], [old], archive=True)
 
 
