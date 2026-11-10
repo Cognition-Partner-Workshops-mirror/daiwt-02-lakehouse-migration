@@ -78,7 +78,7 @@ def test_pipeline_expectations_never_drop_and_quarantine_exists():
 
 def test_bundle_resources_and_registry_entry():
     resources = yaml.safe_load((ROOT / "resources/wwi_city_to_silver.job.yml").read_text())["resources"]
-    pipelines = yaml.safe_load((ROOT / "resources/wwi_city_to_silver.pipeline.yml").read_text())["resources"]
+    pipelines = yaml.safe_load((ROOT / "resources/wwi_city_to_silver.job.yml").read_text())["resources"]
     pipeline = pipelines["pipelines"]["wwi_city_to_silver_pipeline"]
     assert pipeline["serverless"] and pipeline["catalog"] == "${var.catalog}"
     tasks = [t["task_key"] for t in resources["jobs"]["wwi_city_to_silver"]["tasks"]]
@@ -88,5 +88,5 @@ def test_bundle_resources_and_registry_entry():
     entry = json.loads((ROOT / "src/sql/units/registry.json").read_text())["wwi_city_to_silver"]
     assert entry["job"] == "wwi_city_to_silver" and entry["outputs"] == []
     assert entry["owns"] == ["silver.city_changes", "silver.city_changes_quarantine"]
-    assert entry["depends_on"] == ["bronze_landing_replay"]
+    assert entry["depends_on"] == ["silver_temporal_views"]
     assert list(json.loads((ROOT / "src/sql/units/registry.json").read_text())).index("silver_temporal_views") < list(json.loads((ROOT / "src/sql/units/registry.json").read_text())).index("wwi_city_to_silver")

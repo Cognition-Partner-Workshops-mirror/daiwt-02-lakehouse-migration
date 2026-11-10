@@ -160,6 +160,6 @@
     "job": "wwi_city_to_silver",
     "outputs": [],
     "owns": ["silver.city_changes", "silver.city_changes_quarantine"],
-    "depends_on": ["bronze_landing_replay"]
+    "depends_on": ["silver_temporal_views"]
   }
 }
