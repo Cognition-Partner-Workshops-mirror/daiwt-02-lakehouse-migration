@@ -6,10 +6,10 @@ resources:
       schema: ${var.silver_schema}
       serverless: true
       continuous: false
-      root_path: ../src/units/customer
+      root_path: ../src/sql/units/wwi_customer_to_silver
       libraries:
         - file:
-            path: ../src/units/customer/customer_changes.py
+            path: ../src/sql/units/wwi_customer_to_silver/customer_changes.py
       configuration:
         source_catalog: ${var.catalog}
         bronze_schema: ${var.bronze_schema}
@@ -36,7 +36,7 @@ resources:
           sql_task:
             warehouse_id: ${var.warehouse_id}
             file:
-              path: ../src/units/customer/parity.sql
+              path: ../src/sql/units/wwi_customer_to_silver/parity.sql
               source: WORKSPACE
             parameters:
               catalog: ${var.catalog}

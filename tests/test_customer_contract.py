@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from units.customer.customer_logic import COLUMNS, TABLES, cutoffs, datetime7, extract_sql, table_name
+from sql.units.wwi_customer_to_silver.customer_logic import COLUMNS, TABLES, cutoffs, datetime7, extract_sql, table_name
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = json.loads((ROOT / "golden/manifest.json").read_text())
@@ -85,7 +85,7 @@ def test_customer_control_window():
         assert f"concat(split_part({column}, '.', 1), '.', rpad(split_part({column}, '.', 2), 7, '0')) AS {column}" in sql
     assert "valid_from > (SELECT last_cutoff FROM run_window)" in sql
     assert "valid_from <= (SELECT new_cutoff FROM run_window)" in sql
-    assert not (ROOT / "src/units/customer/bronze.py").exists()
+    assert not (ROOT / "src/sql/units/wwi_customer_to_silver/bronze.py").exists()
     assert "valid_from_str" not in sql
     for source in ("sales_customers", "sales_customer_categories", "sales_buying_groups", "application_people"):
         assert f"`catalog`.`silver`.{source}_history" in sql
@@ -103,7 +103,7 @@ def test_customer_initial_load_date_parameter():
     assert "2020-01-01" not in sql
     customer_events = sql.split("'customer' kind")[1].split(" UNION ALL ")[0]
     assert "valid_from <>" not in customer_events
-    parity = (ROOT / "src/units/customer/parity.sql").read_text()
+    parity = (ROOT / "src/sql/units/wwi_customer_to_silver/parity.sql").read_text()
     assert parity.count("valid_from <> '2013-01-01 00:00:00.0000000'") == 2
 
 
@@ -114,7 +114,7 @@ def test_customer_invalid_initial_load_date(initial_load_date):
 
 
 def test_customer_parity_is_strict():
-    sql = (ROOT / "src/units/customer/parity.sql").read_text()
+    sql = (ROOT / "src/sql/units/wwi_customer_to_silver/parity.sql").read_text()
     assert sql.count("EXCEPT ALL") >= 5
     assert "raise_error" in sql
     assert "baseline_actual) = 402" in sql
