@@ -113,7 +113,7 @@ def test_classifier_selects_s05_and_prerequisites():
              "tests/test_stock_item.py"]
     assert classify(registry, paths, base_registry) == [
         "bronze_landing_replay", "silver_temporal_views", "wwi_stock_item_to_silver",
-        "wwi_dim_stock_item_to_gold", "wwi_fact_purchase_to_gold"]
+        "wwi_dim_stock_item_to_gold", "wwi_fact_purchase_to_gold", "wwi_fact_stock_holding_to_gold"]
 
 
 def connection():
