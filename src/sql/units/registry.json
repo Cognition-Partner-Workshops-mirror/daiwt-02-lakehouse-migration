@@ -120,5 +120,11 @@
       "silver.warehouse_stock_items_history"
     ],
     "depends_on": ["bronze_landing_replay"]
+  },
+  "p5_gold_seed": {
+    "job": "p5_gold_seed",
+    "outputs": ["gold.integration_lineage", "gold.integration_etl_cutoff"],
+    "owns": [],
+    "depends_on": []
   }
 }
