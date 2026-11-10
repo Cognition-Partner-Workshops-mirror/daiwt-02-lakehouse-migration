@@ -77,7 +77,7 @@ def test_golden_all_drops():
 
 def test_runner_contract():
     import yaml
-    resource = yaml.safe_load((ROOT / 'resources/s06_supplier.yml').read_text())
+    resource = yaml.safe_load((ROOT / 'resources/s06_supplier.job.yml').read_text())
     job = resource['resources']['jobs']['s06_supplier_job']
     assert {p['name'] for p in job['parameters']} == {'drop', 'last_cutoff', 'new_cutoff'}
     tasks = job['tasks']
