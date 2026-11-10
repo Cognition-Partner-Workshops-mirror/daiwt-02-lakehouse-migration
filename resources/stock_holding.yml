@@ -13,9 +13,6 @@ resources:
       configuration:
         s12.catalog: ${var.catalog}
         s12.bronze_schema: ${var.bronze_schema}
-      permissions:
-        - group_name: users
-          level: CAN_VIEW
   jobs:
     wwi_stock_holding_to_silver:
       name: ${var.job_name_prefix}wwi_stock_holding_to_silver
@@ -27,9 +24,6 @@ resources:
           default: ${var.last_cutoff}
         - name: new_cutoff
           default: ${var.new_cutoff}
-      permissions:
-        - group_name: users
-          level: CAN_VIEW
       tasks:
         - task_key: silver_pipeline
           pipeline_task:

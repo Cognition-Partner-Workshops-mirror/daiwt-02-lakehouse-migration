@@ -36,3 +36,5 @@ determine DROP syntax; pipeline-managed objects are skipped, so units backed by 
 Lakeflow pipeline must full-refresh it on the D0 run (reruns then start clean).
 
 Silver/Gold builders: add your entry; bronze tables already owned by the bronze unit must not be re-listed — depend on that unit instead.
+
+Units must not set resource-level permissions for `users`; both bundle targets grant `users` CAN_VIEW to every job and pipeline.
