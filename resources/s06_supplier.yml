@@ -1,0 +1,93 @@
+resources:
+  pipelines:
+    s06_supplier_pipeline:
+      name: ${var.job_name_prefix}s06-supplier-silver
+      catalog: ${var.catalog}
+      schema: ${var.silver_schema}
+      serverless: true
+      root_path: ../src/sql/units/s06_supplier
+      libraries:
+        - file:
+            path: ../src/sql/units/s06_supplier/pipeline.py
+      configuration:
+        s06.bronze: ${var.catalog}.${var.bronze_schema}
+        drop: D0
+        last_cutoff: '2016-06-06 12:31:17.0000000'
+        new_cutoff: '2016-06-06 12:31:17.0000000'
+      permissions:
+        - group_name: users
+          level: CAN_VIEW
+  jobs:
+    s06_supplier_job:
+      name: ${var.job_name_prefix}s06-supplier-verify
+      max_concurrent_runs: 1
+      permissions:
+        - group_name: users
+          level: CAN_VIEW
+      tasks:
+        - task_key: bronze_D0
+          notebook_task:
+            notebook_path: ../src/sql/units/s06_supplier/bronze.py
+            base_parameters: &bronze_parameters
+              catalog: ${var.catalog}
+              bronze_schema: ${var.bronze_schema}
+              golden_path: ${var.golden_path}
+              pipeline_id: ${resources.pipelines.s06_supplier_pipeline.id}
+              drop: D0
+              last_cutoff: '2016-06-06 12:31:17.0000000'
+              new_cutoff: '2016-06-06 12:31:17.0000000'
+        - task_key: silver_D0
+          depends_on: [{task_key: bronze_D0}]
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.s06_supplier_pipeline.id}
+            full_refresh: true
+        - task_key: parity_D0
+          depends_on: [{task_key: silver_D0}]
+          notebook_task:
+            notebook_path: ../src/sql/units/s06_supplier/parity.py
+            base_parameters: &parity_parameters
+              catalog: ${var.catalog}
+              silver_schema: ${var.silver_schema}
+              golden_path: ${var.golden_path}
+              drop: D0
+        - task_key: bronze_D1
+          depends_on: [{task_key: parity_D0}]
+          notebook_task:
+            notebook_path: ../src/sql/units/s06_supplier/bronze.py
+            base_parameters:
+              <<: *bronze_parameters
+              drop: D1
+              new_cutoff: '2016-06-14 00:00:00.0000000'
+        - task_key: silver_D1
+          depends_on: [{task_key: bronze_D1}]
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.s06_supplier_pipeline.id}
+            full_refresh: true
+        - task_key: parity_D1
+          depends_on: [{task_key: silver_D1}]
+          notebook_task:
+            notebook_path: ../src/sql/units/s06_supplier/parity.py
+            base_parameters:
+              <<: *parity_parameters
+              drop: D1
+        - task_key: bronze_D2
+          depends_on: [{task_key: parity_D1}]
+          notebook_task:
+            notebook_path: ../src/sql/units/s06_supplier/bronze.py
+            base_parameters:
+              <<: *bronze_parameters
+              drop: D2
+              last_cutoff: '2016-06-14 00:00:00.0000000'
+              new_cutoff: '2016-06-21 00:00:00.0000000'
+        - task_key: silver_D2
+          depends_on: [{task_key: bronze_D2}]
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.s06_supplier_pipeline.id}
+            full_refresh: true
+        - task_key: parity_D2
+          depends_on: [{task_key: silver_D2}]
+          notebook_task:
+            notebook_path: ../src/sql/units/s06_supplier/parity.py
+            base_parameters:
+              <<: *parity_parameters
+              drop: D2
