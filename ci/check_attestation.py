@@ -6,6 +6,7 @@ from pathlib import Path
 
 from classify_changes import classify
 from drops import DROPS
+from registry import validate
 from record_attestation import COLUMNS, TABLE, Warehouse, table_name
 
 
@@ -43,6 +44,8 @@ def main():
     args = parser.parse_args()
     try:
         registry = json.loads(subprocess.check_output(["git", "show", f"{args.head_sha}:src/sql/units/registry.json"], text=True))
+        contract = json.loads(subprocess.check_output(["git", "show", f"{args.head_sha}:src/parity/contract.json"], text=True))
+        validate(registry, contract["outputs"])
         paths = subprocess.check_output(["git", "diff", "--name-only", f"{args.base_sha}...{args.head_sha}"], text=True).splitlines()
         warehouse = Warehouse(WorkspaceClient(), "6dc4b80538621b7b")
         data = warehouse.sql(f"SELECT {', '.join(COLUMNS)} FROM {table_name(args.table)} WHERE head_sha = :head AND suffix = :suffix ORDER BY recorded_at DESC",
