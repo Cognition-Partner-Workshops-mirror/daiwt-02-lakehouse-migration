@@ -6,7 +6,7 @@ import pytest
 import databricks.sdk
 
 import check_attestation
-from check_attestation import can_carry_over
+from check_attestation import can_carry_over, normalize_permissions
 from drops import DROPS
 from record_attestation import COLUMNS
 
@@ -25,6 +25,8 @@ def history(tmp_path, monkeypatch):
 
     def commit(message):
         git("add", "src")
+        if (tmp_path / "resources").exists():
+            git("add", "resources")
         git("-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-qm", message)
         return git("rev-parse", "HEAD")
 
@@ -101,6 +103,43 @@ def test_unfetchable_candidate_rejected(history):
     candidate = "0" * 40
     assert can_carry_over(history["base"], history["head"], candidate) == (
         False, f"candidate commit {candidate} is missing and could not be fetched from origin")
+
+
+@pytest.mark.parametrize("extension", ["yml", "yaml"])
+@pytest.mark.parametrize("change,accepted", [
+    ("users_only", True), ("other_change", False), ("non_users", False),
+    ("users_remain", False), ("invalid_yaml", False),
+])
+def test_resource_permissions_carryover(history, extension, change, accepted):
+    h = history
+    path = f"resources/own.{extension}"
+    common = "resources:\n  jobs:\n    own:\n      name: own\n      tasks: []\n"
+    overrides = ("targets:\n  dev:\n    resources:\n      jobs:\n        own:\n          permissions:\n"
+                 "            - group_name: users\n              level: CAN_VIEW\n"
+                 "      pipelines:\n        own_pipeline:\n          permissions:\n"
+                 "            - group_name: users\n              level: CAN_VIEW\n")
+    if change == "non_users":
+        overrides = overrides.replace("group_name: users", "group_name: operators")
+    h["write"](path, common + overrides)
+    candidate = h["commit"]("resource with grants")
+    after = common
+    if change == "other_change":
+        after = common.replace("name: own", "name: changed")
+    elif change == "users_remain":
+        after = common + overrides.replace("CAN_VIEW", "CAN_MANAGE")
+    elif change == "invalid_yaml":
+        after = "resources: [invalid"
+    h["write"](path, after)
+    head = h["commit"]("remove grants")
+    ok, reason = can_carry_over(h["base"], head, candidate)
+    assert ok is accepted, reason
+
+
+def test_permission_normalization_preserves_original_empty_containers():
+    original = {"empty_dict": {}, "empty_list": [], "permissions": []}
+    assert normalize_permissions(original) == (original, False)
+    value = {**original, "targets": {"dev": {"permissions": [{"group_name": "users"}]}}}
+    assert normalize_permissions(value) == (original, True)
 
 
 @pytest.mark.parametrize("candidate", ["missing", "0" * 40, None])

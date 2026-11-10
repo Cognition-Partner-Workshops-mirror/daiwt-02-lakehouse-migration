@@ -5,6 +5,8 @@ import re
 import subprocess
 from pathlib import Path
 
+import yaml
+
 from classify_changes import classify_diff
 from drops import DROPS
 from registry import validate
@@ -33,6 +35,36 @@ def evaluate(rows, head_sha, suffix, required_units):
     except (ValueError, KeyError, TypeError):
         return False, "invalid attestation data"
     return True, "PASS"
+
+
+def normalize_permissions(value):
+    pruned = object()
+
+    def visit(node, permissions=False):
+        removed = False
+        if isinstance(node, dict):
+            result = {}
+            for key, value in node.items():
+                child, changed = visit(value, key == "permissions")
+                removed |= changed
+                if child is not pruned:
+                    result[key] = child
+        elif isinstance(node, list):
+            result = []
+            for value in node:
+                if permissions and isinstance(value, dict) and value.get("group_name") == "users":
+                    removed = True
+                    continue
+                child, changed = visit(value)
+                removed |= changed
+                if child is not pruned:
+                    result.append(child)
+        else:
+            return node, False
+        return (pruned if node and not result and removed else result), removed
+
+    normalized, removed = visit(value)
+    return (None if normalized is pruned else normalized), removed
 
 
 def can_carry_over(base_sha, head_sha, candidate_sha, repo=None):
@@ -74,10 +106,15 @@ def can_carry_over(base_sha, head_sha, candidate_sha, repo=None):
             return False, "PR changed path sets differ"
         for path in sorted(own_paths - {"src/sql/units/registry.json"}):
             if blob(candidate_sha, path) != blob(head_sha, path):
+                if re.fullmatch(r"resources/[^/]+\.ya?ml", path):
+                    before, _ = normalize_permissions(yaml.safe_load(git("show", f"{candidate_sha}:{path}")))
+                    after, has_users = normalize_permissions(yaml.safe_load(git("show", f"{head_sha}:{path}")))
+                    if before == after and not has_users:
+                        continue
                 return False, f"PR blob differs: {path}"
         if own_entries(base, head_sha) != own_entries(candidate_base, candidate_sha):
             return False, "PR registry entries differ"
-    except (subprocess.CalledProcessError, OSError, ValueError) as exc:
+    except (subprocess.CalledProcessError, OSError, ValueError, yaml.YAMLError, RecursionError) as exc:
         return False, f"carry-over comparison failed: {exc}"
     return True, "only main-derived registry changes since"
 

@@ -1,6 +1,6 @@
 # Unit registry
 
-PASS attestations may carry over across a main merge only when PR-owned paths, blobs, and registry-entry changes are identical and recorded units still cover the current selection.
+PASS attestations may carry over across merges or rebases only when PR-owned paths, blobs (except removal of `users` permission grants from resource YAML), and registry-entry changes are identical and recorded units still cover the current selection.
 
 `src/sql/units/registry.json` maps unit names to job keys and table ownership.
 For example (illustrative entries; register only implemented jobs):
