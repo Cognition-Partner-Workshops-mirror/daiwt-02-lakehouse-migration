@@ -255,5 +255,6 @@
       "silver_temporal_views"
     ]
   },
-  "wwi_customer_to_silver": {"job": "wwi_customer_to_silver", "outputs": [], "owns": ["silver.customer_changes", "silver.customer_changes_quarantine"], "depends_on": ["bronze_landing_replay", "silver_temporal_views"]}
+  "wwi_customer_to_silver": {"job": "wwi_customer_to_silver", "outputs": [], "owns": ["silver.customer_changes", "silver.customer_changes_quarantine"], "depends_on": ["bronze_landing_replay", "silver_temporal_views"]},
+  "wwi_report_customer_history_to_gold": {"job": "wwi_report_customer_history_to_gold", "outputs": ["gold.report_customer_history"], "owns": [], "depends_on": ["wwi_dim_customer_to_gold"]}
 }
