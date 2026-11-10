@@ -12,16 +12,10 @@ resources:
       configuration:
         payment_method.catalog: ${var.catalog}
         payment_method.silver_schema: ${var.silver_schema}
-      permissions:
-        - group_name: users
-          level: CAN_VIEW
   jobs:
     wwi_payment_method_to_silver:
       name: ${var.job_name_prefix}wwi_payment_method_to_silver
       max_concurrent_runs: 1
-      permissions:
-        - group_name: users
-          level: CAN_VIEW
       parameters:
         - name: drop
           default: ${var.drop}
