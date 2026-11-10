@@ -1,5 +1,5 @@
 from pyspark import pipelines as dp
-from customer_logic import COLUMNS, extract_sql
+from customer_logic import COLUMNS, extract_sql, window_sql
 
 catalog = spark.conf.get("source_catalog")
 bronze_schema = spark.conf.get("bronze_schema")
@@ -21,5 +21,5 @@ def customer_changes_quarantine():
     invalid = " OR ".join(f"NOT COALESCE(({rule}), false)" for rule in checks.values())
     invalid += " OR NOT COALESCE(valid_from > last_cutoff AND valid_from <= new_cutoff, false)"
     return (spark.read.table("customer_changes")
-            .crossJoin(spark.read.table(f"{catalog}.{bronze_schema}.customer_run_window"))
+            .crossJoin(spark.sql(window_sql(catalog, bronze_schema)))
             .where(invalid).select(*COLUMNS))

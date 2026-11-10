@@ -14,8 +14,12 @@ def test_customer_registry():
     registry = json.loads((ROOT / "src/sql/units/registry.json").read_text())
     entry = registry["wwi_customer_to_silver"]
     assert entry["job"] == "wwi_customer_to_silver"
-    assert entry["outputs"] == ["bronze." + table_name(t) for t in TABLES] + ["bronze.customer_run_window",
-        "silver.customer_changes", "silver.customer_changes_quarantine"]
+    assert entry["outputs"] == []
+    assert entry["owns"] == ["silver.customer_changes", "silver.customer_changes_quarantine"]
+    assert entry["depends_on"] == ["bronze_landing_replay"]
+    platform = json.loads((ROOT / "src/bronze/tables.json").read_text())
+    names = {t["source_table"]: t["table"] for t in platform["tables"]}
+    assert all(table_name(t) == names[t] for t in TABLES)
     assert all("inputs/D0/WideWorldImporters." + t + ".csv" in MANIFEST["files"] for t in TABLES)
 
 
@@ -74,12 +78,16 @@ def test_customer_seventh_decimal_preserved():
 
 def test_customer_control_window():
     sql = extract_sql("catalog", "bronze")
-    assert "`catalog`.`bronze`.customer_run_window" in sql
+    assert "`catalog`.`bronze`.golden_drops" in sql
+    assert "`catalog`.`bronze`.bronze_replay_log WHERE status = 'PASS'" in sql
+    assert "table_name = 'Customer'" in sql
     assert "ValidFrom > (SELECT last_cutoff FROM run_window)" in sql
     assert "ValidFrom <= (SELECT new_cutoff FROM run_window)" in sql
-    bronze = (ROOT / "src/units/customer/bronze.py").read_text()
-    assert "pipelines.update" not in bronze
-    assert "customer_run_window" in bronze
+    assert not (ROOT / "src/units/customer/bronze.py").exists()
+    assert "ValidFrom_str AS ValidFrom" in sql
+    assert "ValidTo_str AS ValidTo" in sql
+    assert "sales_customer_categories" in sql
+    assert "sales_buying_groups" in sql
 
 
 def test_customer_initial_load_date_parameter():

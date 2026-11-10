@@ -25,22 +25,13 @@ resources:
           group_name: users
       parameters:
         - name: drop
-          default: D0
+          default: ${var.drop}
         - name: last_cutoff
-          default: ""
+          default: ${var.last_cutoff}
         - name: new_cutoff
-          default: ""
+          default: ${var.new_cutoff}
       tasks:
-        - task_key: bronze
-          notebook_task:
-            notebook_path: ../src/units/customer/bronze.py
-            base_parameters:
-              catalog: ${var.catalog}
-              bronze_schema: ${var.bronze_schema}
-              golden_path: ${var.golden_path}
         - task_key: pipeline
-          depends_on:
-            - task_key: bronze
           pipeline_task:
             pipeline_id: ${resources.pipelines.customer_silver.id}
             full_refresh: true
@@ -58,3 +49,5 @@ resources:
               silver_schema: ${var.silver_schema}
               golden_path: ${var.golden_path}
               drop: "{{job.parameters.drop}}"
+              last_cutoff: "{{job.parameters.last_cutoff}}"
+              new_cutoff: "{{job.parameters.new_cutoff}}"

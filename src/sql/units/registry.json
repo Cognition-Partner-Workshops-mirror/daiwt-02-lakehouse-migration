@@ -1,5 +1,5 @@
 {
-  "wwi_customer_to_silver": {"job": "wwi_customer_to_silver", "outputs": ["bronze.sales_customers", "bronze.sales_customers_archive", "bronze.sales_customercategories", "bronze.sales_customercategories_archive", "bronze.sales_buyinggroups", "bronze.sales_buyinggroups_archive", "bronze.application_people", "bronze.application_people_archive", "silver.customer_changes", "silver.customer_changes_quarantine"]},
+  "wwi_customer_to_silver": {"job": "wwi_customer_to_silver", "outputs": [], "owns": ["silver.customer_changes", "silver.customer_changes_quarantine"], "depends_on": ["bronze_landing_replay"]},
   "bronze_landing_replay": {
     "job": "bronze_landing_replay",
     "outputs": [],

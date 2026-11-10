@@ -29,17 +29,17 @@ SELECT * FROM IDENTIFIER(:catalog || '.' || :silver_schema || '.customer_changes
 baseline_actual AS (
 -- Baseline reconstruction uses the initial load date 2013-01-01.
 WITH sales_customers AS (
- SELECT * FROM IDENTIFIER(:catalog || '.' || :bronze_schema || '.sales_customers')
- UNION ALL SELECT * FROM IDENTIFIER(:catalog || '.' || :bronze_schema || '.sales_customers_archive')
+ SELECT * EXCEPT (ValidFrom, ValidTo), ValidFrom_str AS ValidFrom, ValidTo_str AS ValidTo FROM IDENTIFIER(:catalog || '.' || :bronze_schema || '.sales_customers')
+ UNION ALL SELECT * EXCEPT (ValidFrom, ValidTo), ValidFrom_str AS ValidFrom, ValidTo_str AS ValidTo FROM IDENTIFIER(:catalog || '.' || :bronze_schema || '.sales_customers_archive')
 ), sales_customercategories AS (
- SELECT * FROM IDENTIFIER(:catalog || '.' || :bronze_schema || '.sales_customercategories')
- UNION ALL SELECT * FROM IDENTIFIER(:catalog || '.' || :bronze_schema || '.sales_customercategories_archive')
+ SELECT * EXCEPT (ValidFrom, ValidTo), ValidFrom_str AS ValidFrom, ValidTo_str AS ValidTo FROM IDENTIFIER(:catalog || '.' || :bronze_schema || '.sales_customer_categories')
+ UNION ALL SELECT * EXCEPT (ValidFrom, ValidTo), ValidFrom_str AS ValidFrom, ValidTo_str AS ValidTo FROM IDENTIFIER(:catalog || '.' || :bronze_schema || '.sales_customer_categories_archive')
 ), sales_buyinggroups AS (
- SELECT * FROM IDENTIFIER(:catalog || '.' || :bronze_schema || '.sales_buyinggroups')
- UNION ALL SELECT * FROM IDENTIFIER(:catalog || '.' || :bronze_schema || '.sales_buyinggroups_archive')
+ SELECT * EXCEPT (ValidFrom, ValidTo), ValidFrom_str AS ValidFrom, ValidTo_str AS ValidTo FROM IDENTIFIER(:catalog || '.' || :bronze_schema || '.sales_buying_groups')
+ UNION ALL SELECT * EXCEPT (ValidFrom, ValidTo), ValidFrom_str AS ValidFrom, ValidTo_str AS ValidTo FROM IDENTIFIER(:catalog || '.' || :bronze_schema || '.sales_buying_groups_archive')
 ), application_people AS (
- SELECT * FROM IDENTIFIER(:catalog || '.' || :bronze_schema || '.application_people')
- UNION ALL SELECT * FROM IDENTIFIER(:catalog || '.' || :bronze_schema || '.application_people_archive')
+ SELECT * EXCEPT (ValidFrom, ValidTo), ValidFrom_str AS ValidFrom, ValidTo_str AS ValidTo FROM IDENTIFIER(:catalog || '.' || :bronze_schema || '.application_people')
+ UNION ALL SELECT * EXCEPT (ValidFrom, ValidTo), ValidFrom_str AS ValidFrom, ValidTo_str AS ValidTo FROM IDENTIFIER(:catalog || '.' || :bronze_schema || '.application_people_archive')
 ), events AS (
  SELECT 'customer' kind, CustomerID id, ValidFrom t FROM sales_customers
  WHERE ValidFrom <= '2016-06-06 12:31:17.0000000'
@@ -85,6 +85,9 @@ SELECT wwi_customer_id, customer, bill_to_customer, category, buying_group,
 FROM seed_customer WHERE customer_key <> 0
 )
 SELECT CASE WHEN :drop IN ('D0', 'D1', 'D2')
+ AND EXISTS (SELECT 1 FROM IDENTIFIER(:catalog || '.' || :bronze_schema || '.golden_drops')
+ WHERE table_name = 'Customer' AND drop = :drop AND last_cutoff = :last_cutoff AND new_cutoff = :new_cutoff)
+ AND :drop = (SELECT max_by(drop, drop_index) FROM IDENTIFIER(:catalog || '.' || :bronze_schema || '.bronze_replay_log') WHERE status = 'PASS')
  AND (SELECT count(*) FROM golden_customer) = 403
  AND (SELECT count(*) FROM golden_customer WHERE customer_key = 0) = 1
  AND (SELECT count(*) FROM IDENTIFIER(:catalog || '.' || :silver_schema || '.customer_changes_quarantine')) = 0
@@ -100,4 +103,12 @@ CASE WHEN (SELECT count(*) FROM seed_customer) = 403
  AND NOT EXISTS (SELECT * FROM baseline_actual EXCEPT ALL SELECT * FROM baseline_expected)
  AND NOT EXISTS (SELECT * FROM baseline_expected EXCEPT ALL SELECT * FROM baseline_actual)
  THEN 'PASS Customer full-history baseline: 402 exact rows'
- ELSE raise_error('Customer full-history baseline mismatch; inspect baseline_actual EXCEPT ALL baseline_expected and reverse') END AS baseline_result;
+ ELSE raise_error('Customer full-history baseline mismatch; inspect baseline_actual EXCEPT ALL baseline_expected and reverse') END AS baseline_result,
+ (SELECT count(*) FROM actual_changes) AS staged_rows,
+ (SELECT count(*) FROM expected_changes) AS golden_gain_rows,
+ (SELECT count(*) FROM golden_customer) AS golden_rows,
+ (SELECT count(*) FROM golden_customer WHERE customer_key = 0) AS golden_key_zero_rows,
+ (SELECT count(*) FROM IDENTIFIER(:catalog || '.' || :silver_schema || '.customer_changes_quarantine')) AS quarantine_rows,
+ (SELECT count(*) FROM baseline_actual) AS baseline_rows,
+ (SELECT count(*) FROM (SELECT * FROM baseline_actual EXCEPT ALL SELECT * FROM baseline_expected)) AS baseline_extra,
+ (SELECT count(*) FROM (SELECT * FROM baseline_expected EXCEPT ALL SELECT * FROM baseline_actual)) AS baseline_missing;

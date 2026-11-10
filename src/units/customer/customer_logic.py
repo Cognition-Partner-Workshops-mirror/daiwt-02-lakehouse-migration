@@ -27,7 +27,25 @@ def cutoffs(manifest, drop):
 
 
 def table_name(source):
-    return source.replace(".", "_").lower()
+    schema, table = source.split(".")
+    return schema.lower() + "_" + re.sub(r"(?<=[a-z])(?=[A-Z])", "_", table).lower()
+
+
+def window_sql(catalog, bronze_schema):
+    return (f"SELECT drop, last_cutoff, new_cutoff FROM `{catalog}`.`{bronze_schema}`.golden_drops "
+            f"WHERE table_name = 'Customer' AND drop = (SELECT max_by(drop, drop_index) "
+            f"FROM `{catalog}`.`{bronze_schema}`.bronze_replay_log WHERE status = 'PASS')")
+
+
+def history_sql(catalog, bronze_schema):
+    history = []
+    for source in SOURCES:
+        name = table_name(source)
+        alias = source.replace(".", "_").lower()
+        projection = "* EXCEPT (ValidFrom, ValidTo), ValidFrom_str AS ValidFrom, ValidTo_str AS ValidTo"
+        history.append(f"{alias} AS (SELECT {projection} FROM `{catalog}`.`{bronze_schema}`.{name} "
+                       f"UNION ALL SELECT {projection} FROM `{catalog}`.`{bronze_schema}`.{name}_archive)")
+    return history
 
 
 def extract_sql(catalog, bronze_schema, last_cutoff=None, new_cutoff=None,
@@ -38,17 +56,14 @@ def extract_sql(catalog, bronze_schema, last_cutoff=None, new_cutoff=None,
     initial = datetime7(initial_load_date + " 00:00:00")
     history = []
     if last_cutoff is None and new_cutoff is None:
-        history.append(f"run_window AS (SELECT * FROM `{catalog}`.`{bronze_schema}`.customer_run_window)")
+        history.append(f"run_window AS ({window_sql(catalog, bronze_schema)})")
         window = "ValidFrom > (SELECT last_cutoff FROM run_window) AND ValidFrom <= (SELECT new_cutoff FROM run_window)"
     else:
         last, new = datetime7(last_cutoff), datetime7(new_cutoff)
         if last > new:
             raise ValueError("last_cutoff exceeds new_cutoff")
         window = f"ValidFrom > '{last}' AND ValidFrom <= '{new}'"
-    for source in SOURCES:
-        name = table_name(source)
-        history.append(f"{name} AS (SELECT * FROM `{catalog}`.`{bronze_schema}`.{name} "
-                       f"UNION ALL SELECT * FROM `{catalog}`.`{bronze_schema}`.{name}_archive)")
+    history.extend(history_sql(catalog, bronze_schema))
     # SQL Server chooses the next strictly greater ValidFrom, even with duplicate events.
     prefix = "WITH " + ",\n".join(history)
     events = []
