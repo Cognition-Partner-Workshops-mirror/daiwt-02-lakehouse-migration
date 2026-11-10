@@ -21,6 +21,8 @@ ROOT = Path(__file__).resolve().parents[1]
 @pytest.mark.parametrize("layer,table,entity,legacy", [
     ("bronze", "sales_customers", "customer", "WideWorldImporters.Sales.Customers"),
     ("bronze", "sales_customers_archive_raw", "customer", "WideWorldImporters.Sales.Customers"),
+    ("bronze", "application_payment_methods_raw", "payment_method", "WideWorldImporters.Application.PaymentMethods"),
+    ("bronze", "warehouse_stock_item_holdings", "stock_holding", "WideWorldImporters.Warehouse.StockItemHoldings"),
     ("silver", "customer_changes", "customer", "Integration.GetCustomerUpdates"),
     ("silver", "stock_holding_snapshot", "stock_holding", "Integration.GetStockHoldingUpdates"),
     ("gold", "dim_customer", "customer", "Dimension.Customer"),
@@ -54,6 +56,11 @@ def test_manifest_and_contract_coverage():
             table = "_".join(Path(path).stem.split(".")[1:]).lower()
             assert resolve("bronze", table)["tags"]["source_entity"] != "unclassified"
     contract = json.loads((ROOT / "src/parity/contract.json").read_text())
+    registry = json.loads((ROOT / "src/sql/units/registry.json").read_text())
+    for table in registry["bronze_landing_replay"]["owns"]:
+        layer, name = table.split(".")
+        if name not in {"bronze_replay_log", "golden_drops"}:
+            assert resolve(layer, name)["tags"]["source_entity"] != "unclassified"
     for table in contract["outputs"]:
         assert resolve(*table.split("."))["tags"]["source_entity"] != "unclassified"
 

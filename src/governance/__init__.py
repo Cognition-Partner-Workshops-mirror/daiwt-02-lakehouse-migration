@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+import re
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -56,7 +57,9 @@ def resolve(layer, table):
             parts = legacy.split(".")
             if len(parts) != 3:
                 continue
-            if "_".join(parts[1:]).lower() == base:
+            source_name = "_".join(parts[1:])
+            snake_name = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", source_name).lower()
+            if base in {source_name.lower(), snake_name}:
                 source = parts[-1].removesuffix("_Archive")
                 entry = {"legacy_object": legacy.removesuffix("_Archive"),
                          "source_entity": spec["bronze_entities"].get(source, "unclassified"),

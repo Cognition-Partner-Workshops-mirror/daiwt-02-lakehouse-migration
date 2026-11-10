@@ -61,7 +61,10 @@ diagnostic rows. With `drop=None`, all drops present in source are replaced.
 The source is never mutated. Run serially per quarantine table (DELETE/INSERT
 is not an atomic transaction). An interrupted rerun must be retried to completion.
 Use `<silver_table>_quarantine` in the same schema, and list both tables in the
-builder unit registry `owns`, for example:
+builder unit registry `owns`.
+Each table has exactly one owning unit: do not re-list bronze inputs in silver
+`owns`; depend on their bronze unit instead. Only parity contract tables belong
+in `outputs`. See [registry.md](registry.md) for the validated registry format.
 
 ```python
 from governance.quality import quarantine_sql
@@ -75,7 +78,7 @@ for statement in quarantine_sql(
 ```
 
 ```json
-{"job": "silver_customer", "outputs": [], "owns": ["silver.customer_changes", "silver.customer_changes_quarantine"], "depends_on": []}
+{"job": "silver_customer", "outputs": [], "owns": ["silver.customer_changes", "silver.customer_changes_quarantine"], "depends_on": ["bronze_landing_replay"]}
 ```
 
 ## Execution boundaries
