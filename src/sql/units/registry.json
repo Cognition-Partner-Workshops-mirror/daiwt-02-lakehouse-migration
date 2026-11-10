@@ -187,5 +187,11 @@
       "bronze_landing_replay",
       "silver_temporal_views"
     ]
+  },
+  "wwi_dim_transaction_type_to_gold": {
+    "job": "wwi_dim_transaction_type_to_gold",
+    "outputs": ["gold.dim_transaction_type"],
+    "owns": [],
+    "depends_on": ["p5_gold_seed", "wwi_transaction_type_to_silver"]
   }
 }
