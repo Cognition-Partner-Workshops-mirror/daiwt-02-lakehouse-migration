@@ -6,13 +6,13 @@
 
 [Inferred] Target **38 bronze tables → 13 conformed silver entities plus silver.date → 16 business gold outputs**, with two platform control tables outside gold. This is a design proposal based on the consumed D0 inventory and registered output contract, not an implemented deployment. `golden/manifest.json:1296-1324`; golden profile (`golden/outputs/<drop>/`)
 
-[Verified] Discovery used local repository code and CSVs only. This report describes observed contracts and recommended decomposition; supporting computations are reproducible with `python ~/wave0b/profile.py`. golden profile (`golden/outputs/<drop>/`); golden profile (`golden/outputs/<drop>/`)
+[Verified] Discovery used local repository code and golden CSVs only. This report describes observed contracts and recommended decomposition; row counts and profiles were computed from `golden/outputs/<drop>/` and `golden/inputs/<drop>/`.
 
 [Inferred] Treat the requested dev/prod catalogs, PR schemas, Unity Catalog governance and Devin-CI promotion as deployment requirements supplied by the brief, not runtime facts verified here; model names below are logical schema.table names. `src/parity/parity_check.py:120-135`
 
 ## §1 Sources and evidence index
 
-Citation roots: `L:` = `/home/ubuntu/repos/daiwt-02-enterprise-etl/`; `` = `/home/ubuntu/repos/daiwt-02-lakehouse-migration/`; golden profile (`golden/outputs/<drop>/`) = `/home/ubuntu/wave0b/`. Line numbers are physical text lines. CSV aggregate observations cite the profiler plus the original CSV header/path; inferred recommendations cite their motivating contract. **[Verified]** means inspected code/CSV or a reproduced local calculation; **[Inferred]** means proposed target behavior or a conclusion beyond direct observation.
+Citation roots: `L:` = legacy repo `daiwt-02-enterprise-etl`; unprefixed paths = this repo.
 | evidence | use |
 | --- | --- |
 | [Verified] `golden/README.md:43-81` | Input delta, temporal-history and serialization contract |
