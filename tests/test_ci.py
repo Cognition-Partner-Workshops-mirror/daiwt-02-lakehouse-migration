@@ -60,19 +60,36 @@ def test_run_units_failure(monkeypatch):
 
 @pytest.mark.parametrize("status,ok", [("PASS", True), ("SKIP", True), ("FAIL", False), ("UNKNOWN", False)])
 def test_attestation(status, ok):
-    text, valid = render({"status": "PASS", "goldens": 1,
-                          "results": [{"table": "gold.fact_sale", "status": status, "reason": "detail"}]})
+    result = parity_result()
+    result["results"][0].update(status=status, reason="detail")
+    result["counts"] = {s: sum(r["status"] == s for r in result["results"])
+                        for s in ("PASS", "FAIL", "SKIP")}
+    result["compared"] = result["counts"]["PASS"] + result["counts"]["FAIL"]
+    text, valid = render(result)
     assert valid is ok
-    assert f"| gold.fact_sale | {status} | detail |" in text
+    assert f"| gold.table_0 | D2 | {status} | detail |" in text
 
 
 def test_attest_empty():
-    assert render({"status": "PASS", "goldens": 0, "results": []})[1]
+    text, valid = render(parity_result())
+    assert valid
+    assert "0 outputs compared — not parity evidence" in text
+    assert "compared 0/18" in text
+
+
+def parity_result(drop="D2"):
+    return {"status": "PASS", "drop": drop, "goldens": 18,
+            "counts": {"PASS": 0, "FAIL": 0, "SKIP": 18}, "compared": 0,
+            "results": [{"table": f"gold.table_{i}", "drop": drop,
+                         "status": "SKIP", "reason": "not yet migrated"} for i in range(18)]}
 
 
 @pytest.mark.parametrize("result", [
-    {"status": "FAIL", "goldens": 0, "results": [], "error": "denied"},
-    {"status": "PASS", "goldens": 1, "results": []},
+    {**parity_result(), "status": "FAIL", "error": "denied"},
+    {**parity_result(), "goldens": 1},
+    {**parity_result(), "compared": 1},
+    {**parity_result(), "counts": {"PASS": 1, "FAIL": 0, "SKIP": 17}},
+    {**parity_result(), "results": [parity_result()["results"][0]] * 18},
 ])
 def test_attest_inconsistent(result):
     assert not render(result)[1]
@@ -86,6 +103,21 @@ def test_attest_missing_and_invalid(tmp_path):
     assert "**FAIL**" in output.read_text()
     result.write_text("not json")
     assert subprocess.run(command).returncode == 1
+
+
+def test_attest_multiple_files(tmp_path):
+    paths = []
+    for drop in ("D0", "D1", "D2"):
+        path = tmp_path / f"{drop}.json"
+        path.write_text(json.dumps(parity_result(drop)))
+        paths.append(str(path))
+    output = tmp_path / "attestation.md"
+    command = [sys.executable, str(ROOT / "ci/attest.py"), *paths, "--output", str(output)]
+    assert subprocess.run(command).returncode == 0
+    assert all(f"PASS {drop}" in output.read_text() for drop in ("D0", "D1", "D2"))
+    Path(paths[1]).write_text("{}")
+    assert subprocess.run(command).returncode == 1
+    assert "**FAIL**" in output.read_text()
 
 
 def test_classification():
