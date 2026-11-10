@@ -1,0 +1,43 @@
+resources:
+  pipelines:
+    s13_transaction:
+      name: ${var.job_name_prefix}wwi_transaction_silver
+      catalog: ${var.catalog}
+      schema: ${var.silver_schema}
+      serverless: true
+      configuration:
+        s13.catalog: ${var.catalog}
+        s13.bronze_schema: ${var.bronze_schema}
+        s13.golden_path: ${var.golden_path}
+        s13.source_path: ${workspace.file_path}/src/sql/units/wwi_transaction_to_silver
+      libraries:
+        - file:
+            path: ../src/sql/units/wwi_transaction_to_silver/transaction_s13_pipeline.py
+  jobs:
+    wwi_transaction_to_silver:
+      name: ${var.job_name_prefix}wwi_transaction_to_silver
+      max_concurrent_runs: 1
+      parameters:
+        - name: drop
+          default: ${var.drop}
+        - name: last_cutoff
+          default: ${var.last_cutoff}
+        - name: new_cutoff
+          default: ${var.new_cutoff}
+      tasks:
+        - task_key: silver
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.s13_transaction.id}
+            full_refresh: true
+        - task_key: parity
+          depends_on:
+            - task_key: silver
+          notebook_task:
+            notebook_path: ../src/sql/units/wwi_transaction_to_silver/transaction_s13_parity.py
+            base_parameters:
+              catalog: ${var.catalog}
+              silver_schema: ${var.silver_schema}
+              golden_path: ${var.golden_path}
+              drop: "{{job.parameters.drop}}"
+              last_cutoff: "{{job.parameters.last_cutoff}}"
+              new_cutoff: "{{job.parameters.new_cutoff}}"
