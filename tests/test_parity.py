@@ -1,4 +1,5 @@
 import copy
+import datetime
 import json
 import re
 import sqlite3
@@ -153,6 +154,8 @@ def test_normalizer_scope_and_predicates():
     ("data_load_completed", None, False),
     ("data_load_completed", "2015-01-01 00:00:00.0000000", False),
     ("data_load_completed", "not a timestamp", False),
+    ("data_load_started", "2016-02-30 00:00:00.0000000", False),
+    ("data_load_completed", "2017-02-30 00:00:00.0000000", False),
     ("lineage_key", "28", False),
 ])
 def test_normalizer_values(column, value, matches):
@@ -162,6 +165,13 @@ def test_normalizer_values(column, value, matches):
     actual = {**golden, column: value}
     db = sqlite3.connect(":memory:")
     db.create_function("regexp", 2, lambda pattern, text: bool(text and re.search(pattern, text)))
+    def try_timestamp(value, pattern):
+        try:
+            return datetime.datetime.strptime(value, "%Y-%m-%d %H:%M:%S").isoformat()
+        except (TypeError, ValueError):
+            return None
+    db.create_function("try_to_timestamp", 2, try_timestamp)
+    assert normalize(columns, ENTRY["compare"]).count("try_to_timestamp(substr(`data_load_started`") == 2
     expression = normalize(columns, ENTRY["compare"]).replace(" RLIKE ", " REGEXP ")
     # SQLite string literals do not interpret Spark SQL backslash escapes.
     expression = expression.replace("\\\\.", "\\.")

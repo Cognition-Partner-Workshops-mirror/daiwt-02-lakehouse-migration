@@ -107,9 +107,11 @@ def normalize(columns, comparators):
             continue
         pattern = r"^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{7}$"
         predicate = f"{col} IS NOT NULL AND {col} RLIKE {literal(pattern)}"
+        predicate += f" AND try_to_timestamp(substr({col}, 1, 19), 'yyyy-MM-dd HH:mm:ss') IS NOT NULL"
         if rule.startswith("gte:") and rule[4:] in columns:
             ref = identifier(rule[4:])
             predicate += f" AND {ref} IS NOT NULL AND {ref} RLIKE {literal(pattern)} AND {col} >= {ref}"
+            predicate += f" AND try_to_timestamp(substr({ref}, 1, 19), 'yyyy-MM-dd HH:mm:ss') IS NOT NULL"
         elif rule != "non_null_datetime7":
             raise ValueError(f"Unknown comparator: {rule}")
         expressions.append(f"CASE WHEN {predicate} THEN '<ts>' ELSE '<invalid>' END AS {col}")
