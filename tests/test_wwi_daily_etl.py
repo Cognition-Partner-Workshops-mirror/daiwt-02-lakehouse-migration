@@ -11,7 +11,7 @@ import yaml
 import daily_etl_dag as dag
 from drops import DROPS, drop_params
 from orchestration.dev_bad_rows import exercise
-from orchestration.verify_silver import verify
+from orchestration.verify_silver import golden_counts, verify
 from parity import parity_check
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -116,14 +116,14 @@ class Spark:
         return SimpleNamespace(collect=lambda: [[self.count]], columns=self.columns)
 
 
-def test_silver_normal_empty_and_failures():
+def test_silver_normal_empty_and_failures(capsys):
     registry = {"a": dict(outputs=[], owns=["silver.customer_changes", "silver.customer_changes_quarantine", "bronze.raw"])}
     spark = Spark()
     assert verify(spark, registry, "cat", "silver_pr_1", "D0") == 2
     assert "WHERE `_drop` = 'D0'" in spark.calls[-1]
     assert verify(Spark(), {}, "cat", "silver_pr_1", "D1") == 0
-    with pytest.raises(RuntimeError, match="quarantined"):
-        verify(Spark(1), registry, "cat", "silver_pr_1", "D2")
+    assert verify(Spark(1), registry, "cat", "silver_pr_1", "D2") == 2
+    assert "QUARANTINE D2: silver.customer_changes_quarantine: 1 rows" in capsys.readouterr().out
     with pytest.raises(RuntimeError, match="missing table"):
         verify(Spark(error=True), registry, "cat", "silver_pr_1", "D0")
     with pytest.raises(ValueError, match="golden"):
@@ -141,15 +141,49 @@ def test_dev_guard_and_p9_requirement(monkeypatch):
 @pytest.mark.parametrize("columns,expected", [(("_drop",), "_drop"), (("drop",), "drop"),
                                              (("drop", "_drop"), "_drop")])
 @pytest.mark.parametrize("count", [0, 1])
-def test_silver_quarantine_drop_columns(columns, expected, count):
+def test_silver_quarantine_drop_columns(columns, expected, count, capsys):
     registry = {"a": dict(outputs=[], owns=["silver.stock_holding_snapshot_quarantine"])}
     spark = Spark(count, columns=columns)
-    if count:
-        with pytest.raises(RuntimeError, match="quarantined rows for D2"):
-            verify(spark, registry, "cat", "silver_pr_1", "D2")
-    else:
-        assert verify(spark, registry, "cat", "silver_pr_1", "D2") == 1
+    assert verify(spark, registry, "cat", "silver_pr_1", "D2") == 1
     assert f"WHERE `{expected}` = 'D2'" in spark.calls[-1]
+    assert f"QUARANTINE D2: silver.stock_holding_snapshot_quarantine: {count} rows" in capsys.readouterr().out
+
+
+def test_golden_count_mapping():
+    manifest = json.loads((ROOT / "golden/manifest.json").read_text())
+    bronze = json.loads((ROOT / "src/bronze/tables.json").read_text())
+    contract = json.loads((ROOT / "src/parity/contract.json").read_text())
+    for drop in DROPS:
+        counts = golden_counts(manifest, bronze, contract, drop)
+        assert len(counts) == len(bronze["tables"]) == 38
+        assert all(table.startswith("bronze.") for table in counts)
+        assert counts["bronze.application_cities"] == manifest["files"][f"inputs/{drop}/WideWorldImporters.Application.Cities.csv"]["full_row_count"]
+    assert golden_counts({"files": {}}, {"tables": []}, {"entries": []}, "D0") == {}
+    assert golden_counts({"files": {}}, {"tables": []}, {"entries": [
+        dict(table="silver.changes", drop="D0", row_count=2),
+        dict(table="silver.changes", drop="D1", row_count=3)]}, "D0") == {"silver.changes": 2}
+
+
+@pytest.mark.parametrize("layer", ["silver", "bronze"])
+@pytest.mark.parametrize("actual", [0, 2])
+def test_mapped_golden_count_check(layer, actual, capsys):
+    table = f"{layer}.changes"
+    registry = {"a": dict(outputs=[], owns=[table])}
+    spark = Spark(actual)
+    if actual != 2:
+        with pytest.raises(RuntimeError, match="golden row-count mismatch for D1: expected 2, got 0"):
+            verify(spark, registry, "cat", "silver_pr_1", "D1", expected_counts={table: 2}, bronze_schema="bronze_pr_1")
+    else:
+        verify(spark, registry, "cat", "silver_pr_1", "D1", expected_counts={table: 2}, bronze_schema="bronze_pr_1")
+        assert f"COUNT D1: {table}: 2 rows matched golden" in capsys.readouterr().out
+    assert spark.calls[-1] == f"SELECT count(*) FROM `cat`.`{layer}_pr_1`.`changes`"
+
+
+def test_unmapped_counts_are_not_invented():
+    spark = Spark(99)
+    registry = {"a": dict(outputs=[], owns=["silver.changes", "bronze.raw"])}
+    assert verify(spark, registry, "cat", "silver_pr_1", "D0", expected_counts={"bronze.unregistered": 1}) == 1
+    assert spark.calls == ["SELECT * FROM `cat`.`silver_pr_1`.`changes` LIMIT 0"]
 
 
 def test_silver_quarantine_missing_drop_column():

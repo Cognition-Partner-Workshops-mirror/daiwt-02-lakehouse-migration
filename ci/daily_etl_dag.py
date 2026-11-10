@@ -64,7 +64,8 @@ def generate():
                 task["condition_task"] = dict(op="EQUAL_TO", left="1", right="1")
             tasks.append(task)
         tasks.append(compute(f"{drop}_verify_silver", "orchestration/verify_silver.py",
-                             ["--catalog", "${var.catalog}", "--schema", "${var.silver_schema}", "--drop", drop],
+                             ["--catalog", "${var.catalog}", "--schema", "${var.silver_schema}",
+                              "--bronze-schema", "${var.bronze_schema}", "--drop", drop],
                              [f"{drop}_{u}" for u in ordered if stage(u, units[u]) == "silver"]))
         tasks.append(compute(f"{drop}_parity", "parity/parity_check.py",
                              ["--suffix", "${var.schema_suffix}", "--catalog", "${var.catalog}",

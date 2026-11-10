@@ -374,6 +374,8 @@ resources:
           - ${var.catalog}
           - --schema
           - ${var.silver_schema}
+          - --bronze-schema
+          - ${var.bronze_schema}
           - --drop
           - D0
       - task_key: D0_parity
@@ -779,6 +781,8 @@ resources:
           - ${var.catalog}
           - --schema
           - ${var.silver_schema}
+          - --bronze-schema
+          - ${var.bronze_schema}
           - --drop
           - D1
       - task_key: D1_parity
@@ -1184,6 +1188,8 @@ resources:
           - ${var.catalog}
           - --schema
           - ${var.silver_schema}
+          - --bronze-schema
+          - ${var.bronze_schema}
           - --drop
           - D2
       - task_key: D2_parity

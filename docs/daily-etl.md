@@ -30,7 +30,15 @@ of dev schema lifecycle cleanup.
 * Job 10: paused 01:30 UTC schedule, single concurrent run, queue and 7200s timeout.
 * Job 15: date dimension is the registered `wwi_dim_date_to_gold` task each drop.
 * Job 19: per-drop `verify_silver` requires all registered silver objects and
-  zero quarantine rows for that drop. Missing objects/columns fail closed.
+  logs quarantine row counts (preferring `_drop`, falling back to `drop`).
+  Quarantine is a non-destructive diagnostic copy; nonzero counts do not fail
+  this gate. Missing objects/drop columns still fail clearly.
+  Golden counts are checked only for registered tables with an explicit mapping:
+  bronze snapshot names/files in `src/bronze/tables.json` map to the manifest's
+  per-drop `full_row_count` (not incremental file row counts). The contract has
+  only gold outputs: there are no golden counts mapped to silver tables or
+  bronze raw/control tables. No counts are inferred for them. Per-unit parity
+  remains in each child job; its other checks are not duplicated here.
 * Job 21: RUN_DURATION_SECONDS > 3600 health rule.
 * Jobs 11–14, 16–18, 20: out of golden scope; not migrated as jobs (platform,
   maintenance, backup, expanded estate/C360 concerns per §4).
