@@ -1,0 +1,55 @@
+resources:
+  pipelines:
+    stock_item_silver:
+      name: ${var.job_name_prefix}wwi_stock_item_silver
+      catalog: ${var.catalog}
+      schema: ${var.silver_schema}
+      serverless: true
+      libraries:
+        - file:
+            path: ../src/sql/units/wwi_stock_item_to_silver/pipeline.py
+      configuration:
+        s05.catalog: ${var.catalog}
+        s05.silver_schema: ${var.silver_schema}
+        s05.source_path: ${workspace.file_path}/src/sql/units/wwi_stock_item_to_silver
+  jobs:
+    wwi_stock_item_to_silver:
+      name: ${var.job_name_prefix}wwi_stock_item_to_silver
+      max_concurrent_runs: 1
+      parameters:
+        - name: drop
+          default: ${var.drop}
+        - name: last_cutoff
+          default: ${var.last_cutoff}
+        - name: new_cutoff
+          default: ${var.new_cutoff}
+      tasks:
+        - task_key: extraction_window
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file:
+              path: ../src/sql/units/wwi_stock_item_to_silver/window.sql
+            parameters:
+              catalog: ${var.catalog}
+              silver_schema: ${var.silver_schema}
+              drop: "{{job.parameters.drop}}"
+              last_cutoff: "{{job.parameters.last_cutoff}}"
+              new_cutoff: "{{job.parameters.new_cutoff}}"
+        - task_key: refresh
+          depends_on:
+            - task_key: extraction_window
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.stock_item_silver.id}
+            full_refresh: true
+        - task_key: parity
+          depends_on:
+            - task_key: refresh
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file:
+              path: ../src/sql/units/wwi_stock_item_to_silver/parity.sql
+            parameters:
+              catalog: ${var.catalog}
+              silver_schema: ${var.silver_schema}
+              golden_path: ${var.golden_path}
+              drop: "{{job.parameters.drop}}"
