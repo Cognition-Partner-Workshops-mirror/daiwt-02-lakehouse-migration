@@ -1,6 +1,9 @@
 """Re-evaluate each extraction against its own immutable bronze drop history."""
 import json
+import sys
 from pyspark import pipelines as dp
+
+sys.path.insert(0, spark.conf.get('s13.source_path'))
 from transaction_s13 import EXPECTATIONS, extract_sql
 
 with open(spark.conf.get('s13.golden_path') + '/manifest.json') as stream:

@@ -1,5 +1,10 @@
 # Databricks notebook source
 import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent) if '__file__' in globals() else
+                '/Workspace' + dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get().rsplit('/', 1)[0])
 from transaction_s13 import GOLD, NAMES, cutoff
 
 catalog = dbutils.widgets.get('catalog')

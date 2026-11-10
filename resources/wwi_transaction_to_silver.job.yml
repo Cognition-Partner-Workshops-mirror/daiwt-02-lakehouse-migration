@@ -9,9 +9,10 @@ resources:
         s13.catalog: ${var.catalog}
         s13.bronze_schema: ${var.bronze_schema}
         s13.golden_path: ${var.golden_path}
+        s13.source_path: ${workspace.file_path}/src/sql/units/wwi_transaction_to_silver
       libraries:
         - file:
-            path: ./transaction_s13_pipeline.py
+            path: ../src/sql/units/wwi_transaction_to_silver/transaction_s13_pipeline.py
   jobs:
     wwi_transaction_to_silver:
       name: ${var.job_name_prefix}wwi_transaction_to_silver
@@ -32,7 +33,7 @@ resources:
           depends_on:
             - task_key: silver
           notebook_task:
-            notebook_path: ./transaction_s13_parity.py
+            notebook_path: ../src/sql/units/wwi_transaction_to_silver/transaction_s13_parity.py
             base_parameters:
               catalog: ${var.catalog}
               silver_schema: ${var.silver_schema}

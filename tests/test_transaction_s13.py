@@ -9,7 +9,7 @@ import pytest
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-spec = importlib.util.spec_from_file_location('transaction_s13', ROOT / 'src/sql/units/transaction_s13.py')
+spec = importlib.util.spec_from_file_location('transaction_s13', ROOT / 'src/sql/units/wwi_transaction_to_silver/transaction_s13.py')
 s13 = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(s13)
 
@@ -123,7 +123,7 @@ def test_platform_interfaces():
     for source, table in s13.SOURCES.items():
         assert tables[source]['table'] == table
         assert tables[source]['primary_key']
-    resource = yaml.safe_load((ROOT / 'src/sql/units/transaction_s13.resources.yml').read_text())
+    resource = yaml.safe_load((ROOT / 'resources/wwi_transaction_to_silver.job.yml').read_text())
     job = resource['resources']['jobs']['wwi_transaction_to_silver']
     assert [t['task_key'] for t in job['tasks']] == ['silver', 'parity']
     assert {p['name'] for p in job['parameters']} == {'drop', 'last_cutoff', 'new_cutoff'}

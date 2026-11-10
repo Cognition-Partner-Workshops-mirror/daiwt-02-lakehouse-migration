@@ -3,7 +3,6 @@ bundle:
 
 include:
   - resources/*.yml
-  - src/sql/units/transaction_s13.resources.yml
 
 variables:
   drop:
