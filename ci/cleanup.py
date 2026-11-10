@@ -14,8 +14,9 @@ REPO = "Cognition-Partner-Workshops-mirror/daiwt-02-lakehouse-migration"
 
 
 def candidates(schemas, closed):
+    # The optional pr_<n>_ prefix matches schemas deployed while presets.name_prefix renamed them.
     for schema in schemas:
-        match = re.fullmatch(r"(bronze|silver|gold)_pr_([0-9]+)", schema.name)
+        match = re.fullmatch(r"(?:pr_[0-9]+_)?(bronze|silver|gold)_pr_([0-9]+)", schema.name)
         if match and schema.comment == MARKER and (closed is None or int(match[2]) in closed):
             yield schema.name
 
@@ -45,7 +46,7 @@ def main():
             text=True))
         closed = {pr["number"] for page in pages for pr in page}
     schemas = list(client.schemas.list(catalog_name="daiwt_02_mig_dev"))
-    suffixes = sorted({name.split("_", 1)[1] for name in candidates(schemas, closed)})
+    suffixes = sorted({"pr_" + name.rsplit("_", 1)[1] for name in candidates(schemas, closed)})
     for suffix in suffixes:
         subprocess.run(["databricks", "bundle", "destroy", "-t", "dev", "--var",
                         f"schema_suffix={suffix}", "--auto-approve"], check=True)

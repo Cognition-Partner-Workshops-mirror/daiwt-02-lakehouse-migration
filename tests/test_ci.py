@@ -100,9 +100,10 @@ def test_cleanup_scoping():
     schemas = [SimpleNamespace(name=n, comment=c) for n, c in [
         ("gold_pr_1", "daiwt-02-migration"), ("bronze_pr_2", "daiwt-02-migration"),
         ("landing", "daiwt-02-migration"), ("gold_pr_3", "another-repo"),
-        ("gold", "daiwt-02-migration"), ("gold_pr_1_extra", "daiwt-02-migration")]]
+        ("gold", "daiwt-02-migration"), ("gold_pr_1_extra", "daiwt-02-migration"),
+        ("pr_4_silver_pr_4", "daiwt-02-migration")]]
     assert list(candidates(schemas, {1})) == ["gold_pr_1"]
-    assert list(candidates(schemas, None)) == ["gold_pr_1", "bronze_pr_2"]
+    assert list(candidates(schemas, None)) == ["gold_pr_1", "bronze_pr_2", "pr_4_silver_pr_4"]
 
 
 def test_zero_units_and_bundle_targets():
@@ -110,6 +111,7 @@ def test_zero_units_and_bundle_targets():
     bundle = yaml.safe_load((ROOT / "databricks.yml").read_text())
     assert "resources" not in bundle["targets"]["prod"]
     assert set(bundle["targets"]["dev"]["resources"]["schemas"]) == {"bronze", "silver", "gold"}
+    assert "name_prefix" not in bundle["targets"]["dev"]["presets"]
     assert bundle["targets"]["prod"]["permissions"] == [
         {"service_principal_name": "${workspace.current_user.userName}", "level": "CAN_MANAGE"},
         {"group_name": "users", "level": "CAN_VIEW"}]
