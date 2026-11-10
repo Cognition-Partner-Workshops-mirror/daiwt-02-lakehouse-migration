@@ -119,15 +119,17 @@ def test_p4_completion_guard(mode):
         rows[0]["status"] = "FAIL"
     elif mode == "wrong_drop":
         rows[0]["drop"] = "D0"
-    windows = [{"drop": "D1", "last_cutoff": "last", "new_cutoff": "wrong" if mode == "wrong_window" else "new"}]
+    last, new = "2016-06-06 12:31:17.0000000", "2016-06-14 00:00:00.0000000"
+    windows = [{"drop": "D1", "last_cutoff": last,
+                "new_cutoff": "2016-06-15 00:00:00" if mode == "wrong_window" else "2016-06-14 00:00:00"}]
     frame = SimpleNamespace(collect=lambda: windows)
     spark = SimpleNamespace(sql=lambda query: SimpleNamespace(collect=lambda: rows),
                             table=lambda name: SimpleNamespace(where=lambda query: frame))
     if mode == "complete":
-        validate_bronze(spark, "bronze", manifest, "D1", "last", "new")
+        validate_bronze(spark, "bronze", manifest, "D1", last, new)
     else:
         with pytest.raises(ValueError):
-            validate_bronze(spark, "bronze", manifest, "D1", "last", "new")
+            validate_bronze(spark, "bronze", manifest, "D1", last, new)
 
 
 @pytest.fixture(scope="module")

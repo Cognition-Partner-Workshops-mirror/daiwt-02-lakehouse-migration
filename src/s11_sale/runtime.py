@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 
 from s11_sale.sale import (COLUMNS, ID_DIMENSIONS, SHARED, assert_parity,
-                           drop_window, quote, target_namespace)
+                           cutoff, drop_window, quote, target_namespace)
 
 
 def read_csv(spark, root, relative, columns):
@@ -30,7 +30,7 @@ def validate_bronze(spark, bronze, manifest, drop, last, new):
         raise ValueError("P4 has not completed the requested bronze drop")
     windows = spark.table(f"{bronze}.golden_drops").where("table_name = 'Sale'").collect()
     selected = [row for row in windows if row["drop"] == drop]
-    if len(selected) != 1 or (selected[0]["last_cutoff"], selected[0]["new_cutoff"]) != (last, new):
+    if len(selected) != 1 or tuple(cutoff(selected[0][key]) for key in ("last_cutoff", "new_cutoff")) != (last, new):
         raise ValueError("P4 Sale window does not match requested cutoffs")
 
 
