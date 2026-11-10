@@ -26,6 +26,8 @@ jobs:
       - uses: databricks/setup-cli@main
       - run: databricks bundle validate --strict -t prod
       - run: databricks bundle deploy -t prod
+      - name: Run production units
+        run: python ci/run_units.py prod --target prod
       - name: Production parity
         id: parity
         continue-on-error: true

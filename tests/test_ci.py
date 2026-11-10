@@ -25,9 +25,29 @@ def test_dev_runs_all_registered_units(monkeypatch):
     assert 'python ci/run_units.py "$suffix"\n' in script
 
 
-def test_run_units_empty(monkeypatch):
+@pytest.mark.parametrize("target,suffix", [("dev", "pr_1"), ("prod", "prod")])
+def test_run_units_empty(monkeypatch, target, suffix):
     monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: pytest.fail("unexpected job"))
-    run_units("pr_1", {})
+    run_units(suffix, {}, target=target)
+
+
+def test_prod_runs_registered_units_before_parity(monkeypatch):
+    calls = []
+    monkeypatch.setattr(subprocess, "run", lambda command, **kwargs: calls.append(command))
+    run_units("prod", {"sale": {"job": "sale_job"}, "customer": {"job": "customer_job"}}, target="prod")
+    assert [command[-1] for command in calls] == ["sale_job", "customer_job"]
+    assert all(command[4:7] == ["prod", "--var", "schema_suffix=prod"] for command in calls)
+    workflow = yaml.safe_load((ROOT / ".github/workflows/deploy-prod.yml").read_text())
+    commands = [step.get("run") for step in workflow["jobs"]["deploy"]["steps"]]
+    assert commands.index("databricks bundle deploy -t prod") < commands.index(
+        "python ci/run_units.py prod --target prod") < commands.index(
+        "python src/parity/parity_check.py --catalog daiwt_02_mig_prod --suffix prod")
+
+
+@pytest.mark.parametrize("target,suffix", [("dev", "prod"), ("prod", "pr_1"), ("other", "pr_1")])
+def test_run_units_rejects_invalid_target_suffix(target, suffix):
+    with pytest.raises(ValueError):
+        run_units(suffix, {}, target=target)
 
 
 def test_run_units_failure(monkeypatch):

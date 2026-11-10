@@ -84,7 +84,7 @@ contains every registered output checked by parity.
 | Workflow | Trigger and behavior |
 | --- | --- |
 | `pr.yml` | PRs to `main` or `pre-migration`; offline tests, strict dev validation, full registered-unit verification, sticky parity attestation and evidence artifact |
-| `deploy-prod.yml` | Push to `main` or manual; strict prod validation, bundle deployment and prod parity |
+| `deploy-prod.yml` | Push to `main` or manual; strict prod validation, bundle deployment, all registered production units and prod parity |
 | `reset.yml` | Manual `target=dev|prod`; runs only if `confirm` exactly matches target |
 | `dev-sweep.yml` | Manual; removes dev PR deployments for closed PRs |
 
