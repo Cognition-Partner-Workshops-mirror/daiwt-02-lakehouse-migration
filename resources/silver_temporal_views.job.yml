@@ -1,0 +1,38 @@
+resources:
+  jobs:
+    silver_temporal_views:
+      name: ${var.job_name_prefix}silver_temporal_views
+      max_concurrent_runs: 1
+      parameters:
+        - name: drop
+          default: ${var.drop}
+        - name: last_cutoff
+          default: ${var.last_cutoff}
+        - name: new_cutoff
+          default: ${var.new_cutoff}
+      environments:
+        - environment_key: silver
+          spec:
+            environment_version: "2"
+      tasks:
+        - task_key: silver_temporal_views
+          environment_key: silver
+          max_retries: 0
+          timeout_seconds: 3600
+          spark_python_task:
+            python_file: ../src/sql/units/silver_temporal_views/temporal_views.py
+            parameters:
+              - --catalog
+              - ${var.catalog}
+              - --bronze-schema
+              - ${var.bronze_schema}
+              - --silver-schema
+              - ${var.silver_schema}
+              - --spec
+              - ${workspace.file_path}/src/bronze/tables.json
+              - --drop
+              - "{{job.parameters.drop}}"
+              - --last-cutoff
+              - "{{job.parameters.last_cutoff}}"
+              - --new-cutoff
+              - "{{job.parameters.new_cutoff}}"

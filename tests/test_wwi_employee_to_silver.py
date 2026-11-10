@@ -177,7 +177,10 @@ def test_p4_never_twice_and_drop_order_guards():
 def test_employee_p4_sql_contract():
     sql = (ROOT / f"src/sql/units/{UNIT}/employee.sql").read_text()
     assert "person_as_of AS (" in sql
-    assert "p.ValidFrom_str <= e.ValidFrom_str AND p.ValidTo_str > e.ValidFrom_str" in sql
+    assert "application_people_history" in sql
+    assert "application_people_asof(e.ValidFrom_str)" in sql
+    assert "WHERE p.PersonID = e.PersonID" in sql
+    assert "DISTINCT" not in sql.split("), events AS (")[1].split("), staged AS (")[0]
     assert "p.IsEmployee = true" in sql and "cast(IsSalesperson AS INT)" in sql
     assert "employee_drop_window" not in sql and "_loaded_drop" not in sql
     assert "bronze_replay_log" in sql and "golden_drops" in sql
@@ -219,12 +222,12 @@ def test_employee_bundle_registry_and_harness(monkeypatch):
     registry = json.loads((ROOT / "src/sql/units/registry.json").read_text())
     spec = registry[UNIT]
     assert spec["job"] == UNIT and spec["outputs"] == []
-    assert spec["depends_on"] == ["bronze_landing_replay"]
+    assert spec["depends_on"] == ["bronze_landing_replay", "silver_temporal_views"]
     assert set(spec["owns"]) == {
         "silver.employee_changes", "silver.employee_changes_quarantine"}
     assert load()[UNIT] == spec
-    selected = expand(registry, ["bronze_landing_replay", UNIT])
-    assert selected == ["bronze_landing_replay", UNIT]
+    selected = expand(registry, ["bronze_landing_replay", "silver_temporal_views", UNIT])
+    assert selected == ["bronze_landing_replay", "silver_temporal_views", UNIT]
     calls = []
 
     class Process:

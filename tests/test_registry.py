@@ -15,7 +15,10 @@ def spec(job="build", outputs=None, owns=None, depends_on=None):
 
 
 def test_real_registry():
-    assert load(ROOT / "src/sql/units/registry.json", ROOT / "src/parity/contract.json") == {}
+    registry = load(ROOT / "src/sql/units/registry.json", ROOT / "src/parity/contract.json")
+    assert "bronze_landing_replay" in registry
+    assert registry["bronze_landing_replay"]["outputs"] == []
+    assert len(registry["bronze_landing_replay"]["owns"]) == 78
 
 
 def test_valid():

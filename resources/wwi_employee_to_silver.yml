@@ -11,6 +11,7 @@ resources:
       configuration:
         bronze_catalog: ${var.catalog}
         bronze_schema: ${var.bronze_schema}
+        temporal_schema: ${var.silver_schema}
       libraries:
         - file:
             path: ../src/sql/units/wwi_employee_to_silver/employee.sql

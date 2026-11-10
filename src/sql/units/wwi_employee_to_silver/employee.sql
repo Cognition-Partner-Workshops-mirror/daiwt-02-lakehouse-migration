@@ -22,18 +22,16 @@ WITH fully_applied_drops AS (
     AND d.drop_index = (SELECT max(drop_index) FROM fully_applied_drops)
 ), person_history AS (
   SELECT PersonID, FullName, PreferredName, IsEmployee, IsSalesperson, Photo, ValidFrom_str, ValidTo_str
-  FROM ${bronze_catalog}.${bronze_schema}.application_people
-  UNION ALL
-  SELECT PersonID, FullName, PreferredName, IsEmployee, IsSalesperson, Photo, ValidFrom_str, ValidTo_str
-  FROM ${bronze_catalog}.${bronze_schema}.application_people_archive
+  FROM ${bronze_catalog}.${temporal_schema}.application_people_history
 ), events AS (
   SELECT p.PersonID, p.ValidFrom_str
   FROM person_history p CROSS JOIN employee_window w
   WHERE p.ValidFrom_str > w.last_cutoff AND p.ValidFrom_str <= w.new_cutoff
     AND p.IsEmployee = true
 ), person_as_of AS (
-  SELECT p.* FROM events e JOIN person_history p
-    ON p.PersonID = e.PersonID AND p.ValidFrom_str <= e.ValidFrom_str AND p.ValidTo_str > e.ValidFrom_str
+  SELECT p.* FROM events e,
+    LATERAL ${bronze_catalog}.${temporal_schema}.application_people_asof(e.ValidFrom_str) p
+  WHERE p.PersonID = e.PersonID
 ), staged AS (
   SELECT PersonID AS wwi_employee_id, FullName AS employee,
     PreferredName AS preferred_name, cast(IsSalesperson AS INT) AS is_salesperson,
