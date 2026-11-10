@@ -58,6 +58,6 @@ for source in TABLES:
 client = WorkspaceClient()
 pipeline_id = dbutils.widgets.get("pipeline_id")
 spec = client.pipelines.get(pipeline_id).spec
-settings = spec.as_dict()
+settings = {key: value for key, value in vars(spec).items() if value is not None}
 settings["configuration"].update(last_cutoff=last, new_cutoff=new)
 client.pipelines.update(pipeline_id, **settings)
