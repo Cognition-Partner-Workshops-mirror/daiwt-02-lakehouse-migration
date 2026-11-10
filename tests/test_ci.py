@@ -164,6 +164,12 @@ def test_cleanup_scoping():
 def test_registry_and_bundle_targets():
     registry = json.loads((ROOT / "src/sql/units/registry.json").read_text())
     assert all(set(spec) >= {"job", "outputs"} for spec in registry.values())
+    jobs = set()
+    for path in (ROOT / "resources").glob("*.yml"):
+        resource = yaml.safe_load(path.read_text()) or {}
+        jobs.update(resource.get("resources", {}).get("jobs", {}))
+    for spec in registry.values():
+        assert spec["job"] in jobs
     bundle = yaml.safe_load((ROOT / "databricks.yml").read_text())
     assert "resources" not in bundle["targets"]["prod"]
     assert set(bundle["targets"]["dev"]["resources"]["schemas"]) == {"bronze", "silver", "gold"}
