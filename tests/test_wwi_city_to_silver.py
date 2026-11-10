@@ -66,11 +66,9 @@ def test_pipeline_expectations_never_drop_and_quarantine_exists():
     sql = (UNIT / "city_changes.sql").read_text()
     assert "city_changes_quarantine" in sql
     assert not re.search(r"ON VIOLATION", sql, re.I)
-    for driver in ("application_cities", "application_cities_archive",
-                   "application_state_provinces", "application_state_provinces_archive",
-                   "application_countries", "application_countries_archive"):
-        assert re.search(rf"\$\{{bronze\}}\.{driver}\b(?!_)", sql)
-    assert "ValidFrom_str AS ValidFrom" in sql and "${bronze}.golden_drops" in sql
+    for driver in ("application_cities", "application_state_provinces", "application_countries"):
+        assert f"${{silver}}.{driver}_history" in sql
+    assert "${bronze}.golden_drops" in sql
     staged = sql.split("CREATE OR REFRESH MATERIALIZED VIEW city_changes (")[1].split("FROM staged s")[0]
     aliases = re.findall(r"AS (wwi_city_id|city|state_province|country|continent|sales_territory|"
                          r"region|subregion|location|latest_recorded_population|valid_from|valid_to)\b",
@@ -91,3 +89,4 @@ def test_bundle_resources_and_registry_entry():
     assert entry["job"] == "wwi_city_to_silver" and entry["outputs"] == []
     assert entry["owns"] == ["silver.city_changes", "silver.city_changes_quarantine"]
     assert entry["depends_on"] == ["bronze_landing_replay"]
+    assert list(json.loads((ROOT / "src/sql/units/registry.json").read_text())).index("silver_temporal_views") < list(json.loads((ROOT / "src/sql/units/registry.json").read_text())).index("wwi_city_to_silver")

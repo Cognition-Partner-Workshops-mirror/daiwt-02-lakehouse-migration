@@ -1,33 +1,21 @@
 -- Lakeflow silver for the City unit: Integration.GetCityUpdates for every replayed drop window
--- (last_cutoff, new_cutoff]. Times are fixed-width datetime2(7) strings (bronze *_str copies),
--- compared lexically. AS OF t over base + _Archive: ValidFrom <= t < ValidTo.
+-- (last_cutoff, new_cutoff]. Times are fixed-width datetime2(7) strings (silver *_history views),
+-- compared lexically. AS OF t over current + archive history: ValidFrom <= t < ValidTo.
 
 CREATE TEMPORARY VIEW city_hist AS
 SELECT CityID, CityName, StateProvinceID, Location, LatestRecordedPopulation,
-       ValidFrom_str AS ValidFrom, ValidTo_str AS ValidTo
-FROM ${bronze}.application_cities
-UNION ALL
-SELECT CityID, CityName, StateProvinceID, Location, LatestRecordedPopulation,
-       ValidFrom_str AS ValidFrom, ValidTo_str AS ValidTo
-FROM ${bronze}.application_cities_archive;
+       valid_from AS ValidFrom, valid_to AS ValidTo
+FROM ${silver}.application_cities_history;
 
 CREATE TEMPORARY VIEW state_province_hist AS
 SELECT StateProvinceID, StateProvinceName, CountryID, SalesTerritory,
-       ValidFrom_str AS ValidFrom, ValidTo_str AS ValidTo
-FROM ${bronze}.application_state_provinces
-UNION ALL
-SELECT StateProvinceID, StateProvinceName, CountryID, SalesTerritory,
-       ValidFrom_str AS ValidFrom, ValidTo_str AS ValidTo
-FROM ${bronze}.application_state_provinces_archive;
+       valid_from AS ValidFrom, valid_to AS ValidTo
+FROM ${silver}.application_state_provinces_history;
 
 CREATE TEMPORARY VIEW country_hist AS
 SELECT CountryID, CountryName, Continent, Region, Subregion,
-       ValidFrom_str AS ValidFrom, ValidTo_str AS ValidTo
-FROM ${bronze}.application_countries
-UNION ALL
-SELECT CountryID, CountryName, Continent, Region, Subregion,
-       ValidFrom_str AS ValidFrom, ValidTo_str AS ValidTo
-FROM ${bronze}.application_countries_archive;
+       valid_from AS ValidFrom, valid_to AS ValidTo
+FROM ${silver}.application_countries_history;
 
 -- City cutoff window of every drop the bronze replay has applied.
 CREATE TEMPORARY VIEW city_extract_windows AS
