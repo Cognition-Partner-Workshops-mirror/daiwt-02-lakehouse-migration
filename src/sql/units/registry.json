@@ -230,6 +230,12 @@
       "silver_temporal_views"
     ]
   },
+  "wwi_fact_stock_holding_to_gold": {
+    "job": "wwi_fact_stock_holding_to_gold",
+    "outputs": ["gold.fact_stock_holding"],
+    "owns": [],
+    "depends_on": ["p5_gold_seed", "wwi_stock_holding_to_silver", "wwi_dim_stock_item_to_gold"]
+  },
   "wwi_dim_transaction_type_to_gold": {
     "job": "wwi_dim_transaction_type_to_gold",
     "outputs": ["gold.dim_transaction_type"],
