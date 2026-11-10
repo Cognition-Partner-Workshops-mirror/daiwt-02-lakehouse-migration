@@ -1,6 +1,7 @@
 """Contract-driven, warehouse-side multiset parity against published CSVs."""
 import argparse
 import csv
+import hashlib
 import io
 import json
 import re
@@ -218,8 +219,20 @@ def compare_entry(warehouse, entry, golden_path, catalog, schema):
     return result
 
 
+def verify_golden(client, golden_path, entry):
+    response = client.files.download(golden_path.rstrip("/") + "/" + entry["path"])
+    digest = hashlib.sha256()
+    size = 0
+    with response.contents as stream:
+        while chunk := stream.read(1024 * 1024):
+            size += len(chunk)
+            digest.update(chunk)
+    if size != entry["size_bytes"] or digest.hexdigest() != entry["sha256"]:
+        raise ValueError("golden file differs from contract")
+
+
 def run(client, catalog, suffix, warehouse_id, registry, drop="D2", *,
-        contract=None, warehouse=None, schema_override=None):
+        contract=None, warehouse=None, schema_override=None, golden_verifier=None):
     if catalog not in ("daiwt_02_mig_dev", "daiwt_02_mig_prod"):
         raise ValueError("Unsupported catalog")
     if catalog.endswith("_dev") and not re.fullmatch(r"pr_[0-9]+", suffix):
@@ -242,6 +255,8 @@ def run(client, catalog, suffix, warehouse_id, registry, drop="D2", *,
         if entry["table"] in producers:
             row["unit"] = producers[entry["table"]]
             try:
+                verifier = golden_verifier if golden_verifier is not None else verify_golden
+                verifier(client, contract["golden_path"], entry)
                 layer = entry["table"].split(".")[0]
                 if layer not in ("bronze", "silver", "gold"):
                     raise ValueError("Unsupported output layer")

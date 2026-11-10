@@ -1,5 +1,7 @@
 import copy
 import datetime
+import hashlib
+import io
 import json
 import re
 import sqlite3
@@ -10,7 +12,7 @@ from types import SimpleNamespace
 import pytest
 
 from parity.parity_check import (
-    ROOT, Warehouse, identifier, normalize, render_column, run, select_entries,
+    ROOT, Warehouse, identifier, normalize, render_column, run, select_entries, verify_golden,
 )
 
 CONTRACT = json.loads((ROOT / "src/parity/contract.json").read_text())
@@ -45,6 +47,7 @@ class FakeWarehouse:
 
 
 def execute(registry=REGISTRY, warehouse=None, **kwargs):
+    kwargs.setdefault("golden_verifier", lambda *_: None)
     return run(None, CATALOG, "pr_1", "w", registry, warehouse=warehouse or FakeWarehouse(), **kwargs)
 
 
@@ -77,6 +80,52 @@ def test_all_skip_no_sql():
     assert result["compared"] == 0
     assert not warehouse.statements
     assert all(r["reason"] == "not yet migrated" for r in result["results"])
+
+
+@pytest.mark.parametrize("mismatch", [None, "sha256", "size_bytes"])
+def test_streamed_golden_integrity(mismatch):
+    data = b"header\n" + b"x" * (2 * 1024 * 1024)
+    entry = {**ENTRY, "sha256": hashlib.sha256(data).hexdigest(), "size_bytes": len(data)}
+    if mismatch:
+        entry[mismatch] = "wrong" if mismatch == "sha256" else len(data) + 1
+    reads = []
+    class ChunkStream(io.BytesIO):
+        def read(self, size=-1):
+            assert size == 1024 * 1024
+            reads.append(size)
+            return super().read(size)
+    client = SimpleNamespace(files=SimpleNamespace(
+        download=lambda _: SimpleNamespace(contents=ChunkStream(data))))
+    if mismatch:
+        with pytest.raises(ValueError, match="golden file differs from contract"):
+            verify_golden(client, "/golden", entry)
+    else:
+        verify_golden(client, "/golden", entry)
+    assert len(reads) == 4
+
+
+def test_golden_integrity_failure_precedes_sql():
+    calls = []
+    def mismatch(client, path, entry):
+        calls.append(entry["table"])
+        raise ValueError("golden file differs from contract")
+    warehouse = FakeWarehouse()
+    result = execute(warehouse=warehouse, golden_verifier=mismatch)
+    assert result["status"] == "FAIL"
+    assert next(r for r in result["results"] if r["table"] == TABLE)["reason"] == (
+        "golden file differs from contract")
+    assert calls == [TABLE]
+    assert not warehouse.statements
+    calls.clear()
+    assert execute({}, warehouse, golden_verifier=mismatch)["status"] == "PASS"
+    assert not calls
+
+
+def test_golden_integrity_match_proceeds():
+    calls = []
+    result = execute(golden_verifier=lambda client, path, entry: calls.append(entry["table"]))
+    assert calls == [TABLE]
+    assert result["counts"]["PASS"] == 1
 
 
 def test_registered_pass_and_sql():
@@ -129,7 +178,7 @@ def test_registered_empty_tables_and_prod_schema():
     entry["row_count"] = 0
     warehouse = FakeWarehouse([0, 0, 0, 0, 0])
     result = run(None, "daiwt_02_mig_prod", "prod", "w", REGISTRY,
-                 warehouse=warehouse, contract=contract)
+                 warehouse=warehouse, contract=contract, golden_verifier=lambda *_: None)
     assert result["counts"] == {"PASS": 1, "FAIL": 0, "SKIP": 17}
     assert "`daiwt_02_mig_prod`.`gold`.`integration_lineage`" in warehouse.statements[0]
     warehouse = FakeWarehouse([ENTRY["row_count"], 0, ENTRY["row_count"], 0, 0])
