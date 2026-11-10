@@ -82,6 +82,23 @@ def test_customer_control_window():
     assert "customer_run_window" in bronze
 
 
+def test_customer_initial_load_date_parameter():
+    sql = extract_sql("catalog", "bronze", "0001-01-01 00:00:00",
+                      "2016-06-06 12:31:17", initial_load_date="2013-01-01")
+    assert sql.count("ValidFrom <> '2013-01-01 00:00:00.0000000'") == 2
+    assert "2020-01-01" not in sql
+    customer_events = sql.split("'customer' kind")[1].split(" UNION ALL ")[0]
+    assert "ValidFrom <>" not in customer_events
+    parity = (ROOT / "src/units/customer/parity.sql").read_text()
+    assert parity.count("ValidFrom <> '2013-01-01 00:00:00.0000000'") == 2
+
+
+@pytest.mark.parametrize("initial_load_date", ["", "2013-01-01'; DROP TABLE t", "2013/01/01"])
+def test_customer_invalid_initial_load_date(initial_load_date):
+    with pytest.raises(ValueError):
+        extract_sql("catalog", "bronze", initial_load_date=initial_load_date)
+
+
 def test_customer_parity_is_strict():
     sql = (ROOT / "src/units/customer/parity.sql").read_text()
     assert sql.count("EXCEPT ALL") >= 5

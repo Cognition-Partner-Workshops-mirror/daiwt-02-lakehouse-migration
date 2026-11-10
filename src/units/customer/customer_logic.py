@@ -30,10 +30,12 @@ def table_name(source):
     return source.replace(".", "_").lower()
 
 
-def extract_sql(catalog, bronze_schema, last_cutoff=None, new_cutoff=None):
+def extract_sql(catalog, bronze_schema, last_cutoff=None, new_cutoff=None,
+                initial_load_date="2020-01-01"):
     for name in (catalog, bronze_schema):
         if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name):
             raise ValueError("Invalid catalog/schema")
+    initial = datetime7(initial_load_date + " 00:00:00")
     history = []
     if last_cutoff is None and new_cutoff is None:
         history.append(f"run_window AS (SELECT * FROM `{catalog}`.`{bronze_schema}`.customer_run_window)")
@@ -53,7 +55,7 @@ def extract_sql(catalog, bronze_schema, last_cutoff=None, new_cutoff=None):
     for kind, table, key in (("customer", "sales_customers", "CustomerID"),
                              ("category", "sales_customercategories", "CustomerCategoryID"),
                              ("group", "sales_buyinggroups", "BuyingGroupID")):
-        exclude = "" if kind == "customer" else " AND ValidFrom <> '2020-01-01 00:00:00.0000000'"
+        exclude = "" if kind == "customer" else f" AND ValidFrom <> '{initial}'"
         events.append(f"SELECT '{kind}' kind, {key} id, ValidFrom t FROM {table} WHERE {window}{exclude}")
     return prefix + ", events AS (" + " UNION ALL ".join(events) + """), changes AS (
  SELECT CAST(c.CustomerID AS INT) wwi_customer_id, c.CustomerName customer,

@@ -27,6 +27,7 @@ actual_changes AS (
 SELECT * FROM IDENTIFIER(:catalog || '.' || :silver_schema || '.customer_changes')
 ),
 baseline_actual AS (
+-- Baseline reconstruction uses the initial load date 2013-01-01.
 WITH sales_customers AS (
  SELECT * FROM IDENTIFIER(:catalog || '.' || :bronze_schema || '.sales_customers')
  UNION ALL SELECT * FROM IDENTIFIER(:catalog || '.' || :bronze_schema || '.sales_customers_archive')
@@ -44,10 +45,10 @@ WITH sales_customers AS (
  WHERE ValidFrom <= '2016-06-06 12:31:17.0000000'
  UNION ALL
  SELECT 'category', CustomerCategoryID, ValidFrom FROM sales_customercategories
- WHERE ValidFrom <= '2016-06-06 12:31:17.0000000' AND ValidFrom <> '2020-01-01 00:00:00.0000000'
+ WHERE ValidFrom <= '2016-06-06 12:31:17.0000000' AND ValidFrom <> '2013-01-01 00:00:00.0000000'
  UNION ALL
  SELECT 'group', BuyingGroupID, ValidFrom FROM sales_buyinggroups
- WHERE ValidFrom <= '2016-06-06 12:31:17.0000000' AND ValidFrom <> '2020-01-01 00:00:00.0000000'
+ WHERE ValidFrom <= '2016-06-06 12:31:17.0000000' AND ValidFrom <> '2013-01-01 00:00:00.0000000'
 ), changes AS (
  SELECT CAST(c.CustomerID AS INT) wwi_customer_id, c.CustomerName customer,
  bt.CustomerName bill_to_customer, cc.CustomerCategoryName category,
