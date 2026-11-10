@@ -1,0 +1,48 @@
+resources:
+  pipelines:
+    customer_silver:
+      name: ${var.job_name_prefix}customer_silver
+      catalog: ${var.catalog}
+      schema: ${var.silver_schema}
+      serverless: true
+      continuous: false
+      root_path: ../src/sql/units/wwi_customer_to_silver
+      libraries:
+        - file:
+            path: ../src/sql/units/wwi_customer_to_silver/customer_changes.py
+      configuration:
+        source_catalog: ${var.catalog}
+        bronze_schema: ${var.bronze_schema}
+        silver_schema: ${var.silver_schema}
+  jobs:
+    wwi_customer_to_silver:
+      name: ${var.job_name_prefix}wwi_customer_to_silver
+      max_concurrent_runs: 1
+      parameters:
+        - name: drop
+          default: ${var.drop}
+        - name: last_cutoff
+          default: ${var.last_cutoff}
+        - name: new_cutoff
+          default: ${var.new_cutoff}
+      tasks:
+        - task_key: pipeline
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.customer_silver.id}
+            full_refresh: true
+        - task_key: parity
+          depends_on:
+            - task_key: pipeline
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file:
+              path: ../src/sql/units/wwi_customer_to_silver/parity.sql
+              source: WORKSPACE
+            parameters:
+              catalog: ${var.catalog}
+              bronze_schema: ${var.bronze_schema}
+              silver_schema: ${var.silver_schema}
+              golden_path: ${var.golden_path}
+              drop: "{{job.parameters.drop}}"
+              last_cutoff: "{{job.parameters.last_cutoff}}"
+              new_cutoff: "{{job.parameters.new_cutoff}}"
