@@ -5,11 +5,11 @@ resources:
       max_concurrent_runs: 1
       parameters:
         - name: drop
-          default: D0
+          default: ${var.drop}
         - name: last_cutoff
-          default: ""
+          default: ${var.last_cutoff}
         - name: new_cutoff
-          default: ""
+          default: ${var.new_cutoff}
       environments:
         - environment_key: bronze
           spec:
