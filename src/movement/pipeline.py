@@ -20,7 +20,7 @@ def projected(frame):
                             "_drop", "last_cutoff", "new_cutoff", "_bad_cast", "LastEditedWhen AS _last_edited_when")
 
 
-@dp.materialized_view(name="movement_changes")
+@dp.materialized_view(name="movement_changes", table_properties={"delta.feature.timestampNtz": "supported"})
 @dp.expect("valid_movement", "wwi_stock_item_transaction_id IS NOT NULL AND "
            "wwi_stock_item_id IS NOT NULL AND wwi_transaction_type_id IS NOT NULL "
            "AND date_key IS NOT NULL AND quantity IS NOT NULL AND _last_edited_when IS NOT NULL AND NOT _bad_cast")
@@ -28,6 +28,6 @@ def movement_changes():
     return projected(candidates())
 
 
-@dp.materialized_view(name="movement_changes_quarantine")
+@dp.materialized_view(name="movement_changes_quarantine", table_properties={"delta.feature.timestampNtz": "supported"})
 def movement_changes_quarantine():
     return projected(candidates().where(~F.expr(VALID)))
