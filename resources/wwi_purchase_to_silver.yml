@@ -45,17 +45,3 @@ resources:
               silver_schema: ${var.silver_schema}
               golden_path: ${var.golden_path}
               drop: "{{job.parameters.drop}}"
-
-targets:
-  dev:
-    resources:
-      pipelines:
-        purchase_silver_pipeline:
-          permissions:
-            - group_name: users
-              level: CAN_VIEW
-      jobs:
-        wwi_purchase_to_silver:
-          permissions:
-            - group_name: users
-              level: CAN_VIEW

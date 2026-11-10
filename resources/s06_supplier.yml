@@ -11,9 +11,6 @@ resources:
             path: ../src/sql/units/s06_supplier/pipeline.py
       configuration:
         s06.silver: ${var.catalog}.${var.silver_schema}
-      permissions:
-        - group_name: users
-          level: CAN_VIEW
   jobs:
     s06_supplier_job:
       name: ${var.job_name_prefix}s06-supplier-verify
@@ -25,9 +22,6 @@ resources:
           default: ${var.last_cutoff}
         - name: new_cutoff
           default: ${var.new_cutoff}
-      permissions:
-        - group_name: users
-          level: CAN_VIEW
       tasks:
         - task_key: run_window
           notebook_task:
