@@ -3,9 +3,11 @@ import csv
 import json
 import re
 import sqlite3
+import sys
 from collections import Counter
 from decimal import Decimal
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -13,6 +15,21 @@ from stock_item.model import COLUMNS, RULES, SOURCES, TYPES, changes_sql, dateti
 
 ROOT = Path(__file__).resolve().parents[1]
 GOLDEN = ROOT / "golden"
+
+
+def test_pipeline_loads_without_file_global(monkeypatch):
+    decorator = lambda *args, **kwargs: lambda function: function
+    monkeypatch.setitem(sys.modules, "pyspark", SimpleNamespace(
+        pipelines=SimpleNamespace(materialized_view=decorator, expect_all=decorator)))
+    source_path = str(ROOT / "src/stock_item")
+    config = {"s05.source_path": source_path, "s05.catalog": "daiwt_02_mig_dev",
+              "s05.bronze_schema": "bronze_pr_16"}
+    monkeypatch.setattr(sys, "path", list(sys.path))
+    namespace = {"spark": SimpleNamespace(conf=SimpleNamespace(get=config.__getitem__))}
+    exec(compile((ROOT / "src/stock_item/pipeline.py").read_text(), "<pipeline>", "exec"), namespace)
+    assert namespace["bronze"] == "`daiwt_02_mig_dev`.`bronze_pr_16`"
+    assert callable(namespace["stock_item_changes"])
+    assert callable(namespace["stock_item_changes_quarantine"])
 
 
 @pytest.mark.parametrize("catalog,allowed", [

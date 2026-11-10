@@ -11,6 +11,7 @@ resources:
       configuration:
         s05.catalog: ${var.catalog}
         s05.bronze_schema: ${var.bronze_schema}
+        s05.source_path: ${workspace.file_path}/src/stock_item
   jobs:
     wwi_stock_item_to_silver:
       name: ${var.job_name_prefix}wwi_stock_item_to_silver

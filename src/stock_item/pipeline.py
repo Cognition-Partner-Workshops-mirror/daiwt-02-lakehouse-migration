@@ -1,10 +1,9 @@
 """Private temporal adapters until Platform P6 is available."""
 import sys
-from pathlib import Path
 
 from pyspark import pipelines as dp
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, spark.conf.get("s05.source_path"))
 from model import RULES, changes_sql
 
 bronze = f"`{spark.conf.get('s05.catalog')}`.`{spark.conf.get('s05.bronze_schema')}`"
