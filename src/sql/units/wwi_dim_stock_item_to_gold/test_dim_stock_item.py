@@ -204,6 +204,6 @@ def test_resource_registry_and_classifier():
                                  depends_on=["p5_gold_seed", "wwi_stock_item_to_silver"])
     base = {k: v for k, v in registry.items() if k != unit}
     expected = {"bronze_landing_replay", "silver_temporal_views", "p5_gold_seed",
-                "wwi_stock_item_to_silver", unit, "wwi_fact_stock_holding_to_gold"}
+                "wwi_stock_item_to_silver", unit, "wwi_fact_stock_holding_to_gold", "wwi_fact_order_to_gold"}
     assert set(classify(registry, [resource, "src/sql/units/registry.json"], base)) == expected
-    assert classify(registry, [f"src/sql/units/{unit}/job.py"]) == [unit, "wwi_fact_stock_holding_to_gold"]
+    assert set(classify(registry, [f"src/sql/units/{unit}/job.py"])) == {unit, "wwi_fact_stock_holding_to_gold", "wwi_fact_order_to_gold"}
