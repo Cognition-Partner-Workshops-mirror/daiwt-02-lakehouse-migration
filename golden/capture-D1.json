@@ -1,0 +1,2084 @@
+{
+  "source": {
+    "engine": "SQL Server",
+    "version": "Microsoft SQL Server 2022 (RTM-CU22) (KB5068450) - 16.0.4225.2 (X64) \n\tOct 22 2025 23:44:36 \n\tCopyright (C) 2022 Microsoft Corporation\n\tExpress Edition (64-bit) on Windows Server 2019 Datacenter 10.0 <X64> (Build 17763: ) (Hypervisor)\n",
+    "edition": "Express Edition (64-bit)",
+    "server_host": "daiwt-02-sqlserver.c0x4mes64o5e.us-east-1.rds.amazonaws.com",
+    "databases": [
+      "WideWorldImporters",
+      "WideWorldImportersDW"
+    ],
+    "legacy_repo": "Cognition-Partner-Workshops-mirror/daiwt-02-enterprise-etl",
+    "legacy_commit": "bb42a64450b60185ac7b9bab5863cbac43449c61"
+  },
+  "captured_at_utc": "2026-11-10T06:25:04.047767+00:00",
+  "drop": {
+    "name": "D1",
+    "window_start": "2016-06-07",
+    "window_end": "2016-06-13",
+    "last_cutoff": [
+      {
+        "Table Name": "City",
+        "Cutoff Time": "2016-06-06 12:31:17.0000000"
+      },
+      {
+        "Table Name": "Customer",
+        "Cutoff Time": "2016-06-06 12:31:17.0000000"
+      },
+      {
+        "Table Name": "Date",
+        "Cutoff Time": "2012-12-31 00:00:00.0000000"
+      },
+      {
+        "Table Name": "Employee",
+        "Cutoff Time": "2016-06-06 12:31:17.0000000"
+      },
+      {
+        "Table Name": "Movement",
+        "Cutoff Time": "2016-06-06 12:31:17.0000000"
+      },
+      {
+        "Table Name": "Order",
+        "Cutoff Time": "2016-06-06 12:31:17.0000000"
+      },
+      {
+        "Table Name": "Payment Method",
+        "Cutoff Time": "2016-06-06 12:31:17.0000000"
+      },
+      {
+        "Table Name": "Purchase",
+        "Cutoff Time": "2016-06-06 12:31:17.0000000"
+      },
+      {
+        "Table Name": "Sale",
+        "Cutoff Time": "2016-06-06 12:31:17.0000000"
+      },
+      {
+        "Table Name": "Stock Holding",
+        "Cutoff Time": "2016-06-06 12:31:17.0000000"
+      },
+      {
+        "Table Name": "Stock Item",
+        "Cutoff Time": "2016-06-06 12:31:17.0000000"
+      },
+      {
+        "Table Name": "Supplier",
+        "Cutoff Time": "2016-06-06 12:31:17.0000000"
+      },
+      {
+        "Table Name": "Transaction",
+        "Cutoff Time": "2016-06-06 12:31:17.0000000"
+      },
+      {
+        "Table Name": "Transaction Type",
+        "Cutoff Time": "2016-06-06 12:31:17.0000000"
+      }
+    ],
+    "new_cutoff": "2016-06-14 00:00:00"
+  },
+  "files": {
+    "inputs/D1/WideWorldImporters.Application.Cities.csv": {
+      "columns": [
+        "CityID",
+        "CityName",
+        "StateProvinceID",
+        "Location",
+        "LatestRecordedPopulation",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "row_count": 0,
+      "size_bytes": 97,
+      "sha256": "bcac64cd6c5881a60b9e76800fec64593a981133c25a712f9451855d2e32d175",
+      "database": "WideWorldImporters",
+      "source_table": "Application.Cities",
+      "primary_key": [
+        "CityID"
+      ],
+      "key_columns": [
+        "CityID"
+      ],
+      "key_semantics": "primary_key",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Application.Cities.csv",
+      "full_row_count": 37940,
+      "full_sha256": "2ddc4dee8a5f63d8d8bcf99c4448de352cd157518c5e9db9505093b0a0026735",
+      "previous_input": "inputs/D0/WideWorldImporters.Application.Cities.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Application.Cities_Archive.csv": {
+      "columns": [
+        "CityID",
+        "CityName",
+        "StateProvinceID",
+        "Location",
+        "LatestRecordedPopulation",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "row_count": 0,
+      "size_bytes": 97,
+      "sha256": "bcac64cd6c5881a60b9e76800fec64593a981133c25a712f9451855d2e32d175",
+      "database": "WideWorldImporters",
+      "source_table": "Application.Cities_Archive",
+      "primary_key": [],
+      "key_columns": [
+        "CityID",
+        "CityName",
+        "StateProvinceID",
+        "Location",
+        "LatestRecordedPopulation",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "key_semantics": "whole_row_multiset",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Application.Cities_Archive.csv",
+      "full_row_count": 28,
+      "full_sha256": "1067e02dc2a848d2a5882638a32ce2fcd249369370737f8e2f299699162a3b9e",
+      "previous_input": "inputs/D0/WideWorldImporters.Application.Cities_Archive.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Application.Countries.csv": {
+      "columns": [
+        "CountryID",
+        "CountryName",
+        "FormalName",
+        "IsoAlpha3Code",
+        "IsoNumericCode",
+        "CountryType",
+        "LatestRecordedPopulation",
+        "Continent",
+        "Region",
+        "Subregion",
+        "Border",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "row_count": 0,
+      "size_bytes": 164,
+      "sha256": "652f5b86e4b1ce8566ae0aff9dd7a3079f0039b1672d3eefe14117d5c5e78470",
+      "database": "WideWorldImporters",
+      "source_table": "Application.Countries",
+      "primary_key": [
+        "CountryID"
+      ],
+      "key_columns": [
+        "CountryID"
+      ],
+      "key_semantics": "primary_key",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Application.Countries.csv",
+      "full_row_count": 190,
+      "full_sha256": "74943dde87df2eacf1e92a3cfe4e2d6ca7d57ea003c9d3c488151878f3377947",
+      "previous_input": "inputs/D0/WideWorldImporters.Application.Countries.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Application.Countries_Archive.csv": {
+      "columns": [
+        "CountryID",
+        "CountryName",
+        "FormalName",
+        "IsoAlpha3Code",
+        "IsoNumericCode",
+        "CountryType",
+        "LatestRecordedPopulation",
+        "Continent",
+        "Region",
+        "Subregion",
+        "Border",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "row_count": 0,
+      "size_bytes": 164,
+      "sha256": "652f5b86e4b1ce8566ae0aff9dd7a3079f0039b1672d3eefe14117d5c5e78470",
+      "database": "WideWorldImporters",
+      "source_table": "Application.Countries_Archive",
+      "primary_key": [],
+      "key_columns": [
+        "CountryID",
+        "CountryName",
+        "FormalName",
+        "IsoAlpha3Code",
+        "IsoNumericCode",
+        "CountryType",
+        "LatestRecordedPopulation",
+        "Continent",
+        "Region",
+        "Subregion",
+        "Border",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "key_semantics": "whole_row_multiset",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Application.Countries_Archive.csv",
+      "full_row_count": 37,
+      "full_sha256": "0af7191a29bbd1bf40c0a332cbdc327e58ad186b37cd2b552841057f9686bb70",
+      "previous_input": "inputs/D0/WideWorldImporters.Application.Countries_Archive.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Application.PaymentMethods.csv": {
+      "columns": [
+        "PaymentMethodID",
+        "PaymentMethodName",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "row_count": 0,
+      "size_bytes": 65,
+      "sha256": "db156fe6b4f2c1aaa666b4df704897df7007223813a0c69fa0b14d2d85e49257",
+      "database": "WideWorldImporters",
+      "source_table": "Application.PaymentMethods",
+      "primary_key": [
+        "PaymentMethodID"
+      ],
+      "key_columns": [
+        "PaymentMethodID"
+      ],
+      "key_semantics": "primary_key",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Application.PaymentMethods.csv",
+      "full_row_count": 4,
+      "full_sha256": "c95af5587e29f81e0f7662c9d110f62a23c1732b7bd1bf28d66f73133d9d4c72",
+      "previous_input": "inputs/D0/WideWorldImporters.Application.PaymentMethods.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Application.PaymentMethods_Archive.csv": {
+      "columns": [
+        "PaymentMethodID",
+        "PaymentMethodName",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "row_count": 0,
+      "size_bytes": 65,
+      "sha256": "db156fe6b4f2c1aaa666b4df704897df7007223813a0c69fa0b14d2d85e49257",
+      "database": "WideWorldImporters",
+      "source_table": "Application.PaymentMethods_Archive",
+      "primary_key": [],
+      "key_columns": [
+        "PaymentMethodID",
+        "PaymentMethodName",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "key_semantics": "whole_row_multiset",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Application.PaymentMethods_Archive.csv",
+      "full_row_count": 1,
+      "full_sha256": "96d129d2c0f0d0c67d9b9d6fd67038da76057059724093b8f6ebdf4443f79cef",
+      "previous_input": "inputs/D0/WideWorldImporters.Application.PaymentMethods_Archive.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Application.People.csv": {
+      "columns": [
+        "PersonID",
+        "FullName",
+        "PreferredName",
+        "SearchName",
+        "IsPermittedToLogon",
+        "LogonName",
+        "IsExternalLogonProvider",
+        "HashedPassword",
+        "IsSystemUser",
+        "IsEmployee",
+        "IsSalesperson",
+        "UserPreferences",
+        "PhoneNumber",
+        "FaxNumber",
+        "EmailAddress",
+        "Photo",
+        "CustomFields",
+        "OtherLanguages",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "row_count": 2,
+      "size_bytes": 1177,
+      "sha256": "4ca703ae761f417a06f6bc4dc6ce97f4ab529d24d155cfe6fd0ca2e572f500b9",
+      "database": "WideWorldImporters",
+      "source_table": "Application.People",
+      "primary_key": [
+        "PersonID"
+      ],
+      "key_columns": [
+        "PersonID"
+      ],
+      "key_semantics": "primary_key",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Application.People.csv",
+      "full_row_count": 1111,
+      "full_sha256": "fbf62cb4d7220be369ff29eddd0b7f041a5a542a76d957693742085bdb99e96a",
+      "previous_input": "inputs/D0/WideWorldImporters.Application.People.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Application.People_Archive.csv": {
+      "columns": [
+        "PersonID",
+        "FullName",
+        "PreferredName",
+        "SearchName",
+        "IsPermittedToLogon",
+        "LogonName",
+        "IsExternalLogonProvider",
+        "HashedPassword",
+        "IsSystemUser",
+        "IsEmployee",
+        "IsSalesperson",
+        "UserPreferences",
+        "PhoneNumber",
+        "FaxNumber",
+        "EmailAddress",
+        "Photo",
+        "CustomFields",
+        "OtherLanguages",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "row_count": 2,
+      "size_bytes": 1177,
+      "sha256": "46074b81d6ba144ff26a394e09b93a9c1129093d64543f474226a5abdd418f8b",
+      "database": "WideWorldImporters",
+      "source_table": "Application.People_Archive",
+      "primary_key": [],
+      "key_columns": [
+        "PersonID",
+        "FullName",
+        "PreferredName",
+        "SearchName",
+        "IsPermittedToLogon",
+        "LogonName",
+        "IsExternalLogonProvider",
+        "HashedPassword",
+        "IsSystemUser",
+        "IsEmployee",
+        "IsSalesperson",
+        "UserPreferences",
+        "PhoneNumber",
+        "FaxNumber",
+        "EmailAddress",
+        "Photo",
+        "CustomFields",
+        "OtherLanguages",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "key_semantics": "whole_row_multiset",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Application.People_Archive.csv",
+      "full_row_count": 963,
+      "full_sha256": "005d8aac5edd845c33faae0ace32cdf50f6386c2d67f7d0d8b297a8f7ec16d66",
+      "previous_input": "inputs/D0/WideWorldImporters.Application.People_Archive.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Application.StateProvinces.csv": {
+      "columns": [
+        "StateProvinceID",
+        "StateProvinceCode",
+        "StateProvinceName",
+        "CountryID",
+        "SalesTerritory",
+        "Border",
+        "LatestRecordedPopulation",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "row_count": 0,
+      "size_bytes": 140,
+      "sha256": "9cc792efafdb84f5263ab47d5d2cf6e0e99158b37df39c5b021cc62320cd00df",
+      "database": "WideWorldImporters",
+      "source_table": "Application.StateProvinces",
+      "primary_key": [
+        "StateProvinceID"
+      ],
+      "key_columns": [
+        "StateProvinceID"
+      ],
+      "key_semantics": "primary_key",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Application.StateProvinces.csv",
+      "full_row_count": 53,
+      "full_sha256": "9f8ebb0f3f89e6d5b5231e21475ef1ed9f27d9aec38a33f3a27f96f1bdf27660",
+      "previous_input": "inputs/D0/WideWorldImporters.Application.StateProvinces.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Application.StateProvinces_Archive.csv": {
+      "columns": [
+        "StateProvinceID",
+        "StateProvinceCode",
+        "StateProvinceName",
+        "CountryID",
+        "SalesTerritory",
+        "Border",
+        "LatestRecordedPopulation",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "row_count": 0,
+      "size_bytes": 140,
+      "sha256": "9cc792efafdb84f5263ab47d5d2cf6e0e99158b37df39c5b021cc62320cd00df",
+      "database": "WideWorldImporters",
+      "source_table": "Application.StateProvinces_Archive",
+      "primary_key": [],
+      "key_columns": [
+        "StateProvinceID",
+        "StateProvinceCode",
+        "StateProvinceName",
+        "CountryID",
+        "SalesTerritory",
+        "Border",
+        "LatestRecordedPopulation",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "key_semantics": "whole_row_multiset",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Application.StateProvinces_Archive.csv",
+      "full_row_count": 104,
+      "full_sha256": "d0ebe0955df096ea7365323127dbf6fc55a3e370479941fb9a249e97af84b1ee",
+      "previous_input": "inputs/D0/WideWorldImporters.Application.StateProvinces_Archive.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Application.TransactionTypes.csv": {
+      "columns": [
+        "TransactionTypeID",
+        "TransactionTypeName",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "row_count": 0,
+      "size_bytes": 69,
+      "sha256": "f92bc402f0341d33d474365ba18688ee721762245609d2c0112bee3bcd277980",
+      "database": "WideWorldImporters",
+      "source_table": "Application.TransactionTypes",
+      "primary_key": [
+        "TransactionTypeID"
+      ],
+      "key_columns": [
+        "TransactionTypeID"
+      ],
+      "key_semantics": "primary_key",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Application.TransactionTypes.csv",
+      "full_row_count": 13,
+      "full_sha256": "1d7c6d6b510a2ce428f8b6ad60c632a37317130d323ada10127c7750f41c512c",
+      "previous_input": "inputs/D0/WideWorldImporters.Application.TransactionTypes.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Application.TransactionTypes_Archive.csv": {
+      "columns": [
+        "TransactionTypeID",
+        "TransactionTypeName",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "row_count": 0,
+      "size_bytes": 69,
+      "sha256": "f92bc402f0341d33d474365ba18688ee721762245609d2c0112bee3bcd277980",
+      "database": "WideWorldImporters",
+      "source_table": "Application.TransactionTypes_Archive",
+      "primary_key": [],
+      "key_columns": [
+        "TransactionTypeID",
+        "TransactionTypeName",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "key_semantics": "whole_row_multiset",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Application.TransactionTypes_Archive.csv",
+      "full_row_count": 1,
+      "full_sha256": "1d8fe9b538ffd8efd2b2d9a0133cbae6f0bef6cdfe81ef9540dad3b515657baa",
+      "previous_input": "inputs/D0/WideWorldImporters.Application.TransactionTypes_Archive.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Purchasing.PurchaseOrderLines.csv": {
+      "columns": [
+        "PurchaseOrderLineID",
+        "PurchaseOrderID",
+        "StockItemID",
+        "OrderedOuters",
+        "Description",
+        "ReceivedOuters",
+        "PackageTypeID",
+        "ExpectedUnitPricePerOuter",
+        "LastReceiptDate",
+        "IsOrderLineFinalized",
+        "LastEditedBy",
+        "LastEditedWhen"
+      ],
+      "row_count": 57,
+      "size_bytes": 6981,
+      "sha256": "0d9b5777546cec5775807750258be9a9715838aff2b30aab99598cc73b133d86",
+      "database": "WideWorldImporters",
+      "source_table": "Purchasing.PurchaseOrderLines",
+      "primary_key": [
+        "PurchaseOrderLineID"
+      ],
+      "key_columns": [
+        "PurchaseOrderLineID"
+      ],
+      "key_semantics": "primary_key",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Purchasing.PurchaseOrderLines.csv",
+      "full_row_count": 8415,
+      "full_sha256": "15fa025e907650b4b83d0f8659565acc966032c76d4ddde40b0e16b7ba6014c6",
+      "previous_input": "inputs/D0/WideWorldImporters.Purchasing.PurchaseOrderLines.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Purchasing.PurchaseOrders.csv": {
+      "columns": [
+        "PurchaseOrderID",
+        "SupplierID",
+        "OrderDate",
+        "DeliveryMethodID",
+        "ContactPersonID",
+        "ExpectedDeliveryDate",
+        "SupplierReference",
+        "IsOrderFinalized",
+        "Comments",
+        "InternalComments",
+        "LastEditedBy",
+        "LastEditedWhen"
+      ],
+      "row_count": 14,
+      "size_bytes": 1299,
+      "sha256": "dad209bbbc0573535f4d1cf8c6df33789df1decb38a953334f12904003f01f3c",
+      "database": "WideWorldImporters",
+      "source_table": "Purchasing.PurchaseOrders",
+      "primary_key": [
+        "PurchaseOrderID"
+      ],
+      "key_columns": [
+        "PurchaseOrderID"
+      ],
+      "key_semantics": "primary_key",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Purchasing.PurchaseOrders.csv",
+      "full_row_count": 2086,
+      "full_sha256": "fc48150982a88ade617aa978904ab96e1feeb143d5fb46f1f58f8ce024577e43",
+      "previous_input": "inputs/D0/WideWorldImporters.Purchasing.PurchaseOrders.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Purchasing.SupplierCategories.csv": {
+      "columns": [
+        "SupplierCategoryID",
+        "SupplierCategoryName",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "row_count": 0,
+      "size_bytes": 71,
+      "sha256": "dc692e24a9ce7112836ad1d2bc7c5437b6965c0f1683cbbb997bf0f846f475fd",
+      "database": "WideWorldImporters",
+      "source_table": "Purchasing.SupplierCategories",
+      "primary_key": [
+        "SupplierCategoryID"
+      ],
+      "key_columns": [
+        "SupplierCategoryID"
+      ],
+      "key_semantics": "primary_key",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Purchasing.SupplierCategories.csv",
+      "full_row_count": 9,
+      "full_sha256": "97251566dcf475be3a88c221e33a7036e0db79e47bcd8767f3e5f92dd90ceea4",
+      "previous_input": "inputs/D0/WideWorldImporters.Purchasing.SupplierCategories.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Purchasing.SupplierCategories_Archive.csv": {
+      "columns": [
+        "SupplierCategoryID",
+        "SupplierCategoryName",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "row_count": 0,
+      "size_bytes": 71,
+      "sha256": "dc692e24a9ce7112836ad1d2bc7c5437b6965c0f1683cbbb997bf0f846f475fd",
+      "database": "WideWorldImporters",
+      "source_table": "Purchasing.SupplierCategories_Archive",
+      "primary_key": [],
+      "key_columns": [
+        "SupplierCategoryID",
+        "SupplierCategoryName",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "key_semantics": "whole_row_multiset",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Purchasing.SupplierCategories_Archive.csv",
+      "full_row_count": 1,
+      "full_sha256": "568da66bf0a4a93f365264e43e07f659f3c3cbc0acbc32803324ba3f5832f399",
+      "previous_input": "inputs/D0/WideWorldImporters.Purchasing.SupplierCategories_Archive.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Purchasing.SupplierTransactions.csv": {
+      "columns": [
+        "SupplierTransactionID",
+        "SupplierID",
+        "TransactionTypeID",
+        "PurchaseOrderID",
+        "PaymentMethodID",
+        "SupplierInvoiceNumber",
+        "TransactionDate",
+        "AmountExcludingTax",
+        "TaxAmount",
+        "TransactionAmount",
+        "OutstandingBalance",
+        "FinalizationDate",
+        "IsFinalized",
+        "LastEditedBy",
+        "LastEditedWhen"
+      ],
+      "row_count": 16,
+      "size_bytes": 2007,
+      "sha256": "8b43abe5bce7dcf8b377271c4ca99d368e2f49c4134e59cdd77a6adbe4bbcd52",
+      "database": "WideWorldImporters",
+      "source_table": "Purchasing.SupplierTransactions",
+      "primary_key": [
+        "SupplierTransactionID"
+      ],
+      "key_columns": [
+        "SupplierTransactionID"
+      ],
+      "key_semantics": "primary_key",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Purchasing.SupplierTransactions.csv",
+      "full_row_count": 2452,
+      "full_sha256": "acfd682053a9a7b5c1234793fc5a0889736a323c80efa7f06ef185322b63329d",
+      "previous_input": "inputs/D0/WideWorldImporters.Purchasing.SupplierTransactions.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Purchasing.Suppliers.csv": {
+      "columns": [
+        "SupplierID",
+        "SupplierName",
+        "SupplierCategoryID",
+        "PrimaryContactPersonID",
+        "AlternateContactPersonID",
+        "DeliveryMethodID",
+        "DeliveryCityID",
+        "PostalCityID",
+        "SupplierReference",
+        "BankAccountName",
+        "BankAccountBranch",
+        "BankAccountCode",
+        "BankAccountNumber",
+        "BankInternationalCode",
+        "PaymentDays",
+        "InternalComments",
+        "PhoneNumber",
+        "FaxNumber",
+        "WebsiteURL",
+        "DeliveryAddressLine1",
+        "DeliveryAddressLine2",
+        "DeliveryPostalCode",
+        "DeliveryLocation",
+        "PostalAddressLine1",
+        "PostalAddressLine2",
+        "PostalPostalCode",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "row_count": 0,
+      "size_bytes": 470,
+      "sha256": "452d854ec3b2d4111925c54b0142610e3922c53adbc956747c3f1c3689129881",
+      "database": "WideWorldImporters",
+      "source_table": "Purchasing.Suppliers",
+      "primary_key": [
+        "SupplierID"
+      ],
+      "key_columns": [
+        "SupplierID"
+      ],
+      "key_semantics": "primary_key",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Purchasing.Suppliers.csv",
+      "full_row_count": 13,
+      "full_sha256": "f81388e1e8ac36037723575d9cfd490c36107e69c236a81bea34abeb310200dd",
+      "previous_input": "inputs/D0/WideWorldImporters.Purchasing.Suppliers.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Purchasing.Suppliers_Archive.csv": {
+      "columns": [
+        "SupplierID",
+        "SupplierName",
+        "SupplierCategoryID",
+        "PrimaryContactPersonID",
+        "AlternateContactPersonID",
+        "DeliveryMethodID",
+        "DeliveryCityID",
+        "PostalCityID",
+        "SupplierReference",
+        "BankAccountName",
+        "BankAccountBranch",
+        "BankAccountCode",
+        "BankAccountNumber",
+        "BankInternationalCode",
+        "PaymentDays",
+        "InternalComments",
+        "PhoneNumber",
+        "FaxNumber",
+        "WebsiteURL",
+        "DeliveryAddressLine1",
+        "DeliveryAddressLine2",
+        "DeliveryPostalCode",
+        "DeliveryLocation",
+        "PostalAddressLine1",
+        "PostalAddressLine2",
+        "PostalPostalCode",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "row_count": 0,
+      "size_bytes": 470,
+      "sha256": "452d854ec3b2d4111925c54b0142610e3922c53adbc956747c3f1c3689129881",
+      "database": "WideWorldImporters",
+      "source_table": "Purchasing.Suppliers_Archive",
+      "primary_key": [],
+      "key_columns": [
+        "SupplierID",
+        "SupplierName",
+        "SupplierCategoryID",
+        "PrimaryContactPersonID",
+        "AlternateContactPersonID",
+        "DeliveryMethodID",
+        "DeliveryCityID",
+        "PostalCityID",
+        "SupplierReference",
+        "BankAccountName",
+        "BankAccountBranch",
+        "BankAccountCode",
+        "BankAccountNumber",
+        "BankInternationalCode",
+        "PaymentDays",
+        "InternalComments",
+        "PhoneNumber",
+        "FaxNumber",
+        "WebsiteURL",
+        "DeliveryAddressLine1",
+        "DeliveryAddressLine2",
+        "DeliveryPostalCode",
+        "DeliveryLocation",
+        "PostalAddressLine1",
+        "PostalAddressLine2",
+        "PostalPostalCode",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "key_semantics": "whole_row_multiset",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Purchasing.Suppliers_Archive.csv",
+      "full_row_count": 13,
+      "full_sha256": "179d47ed15f8d57697fbd74af0024d244cb364aa92d8296d34201860fc664f1c",
+      "previous_input": "inputs/D0/WideWorldImporters.Purchasing.Suppliers_Archive.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Sales.BuyingGroups.csv": {
+      "columns": [
+        "BuyingGroupID",
+        "BuyingGroupName",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "row_count": 0,
+      "size_bytes": 61,
+      "sha256": "b9b7de67a80b84e3d4cc488ed0a7917cbf831e84b80deec239a25a2ac882e4b2",
+      "database": "WideWorldImporters",
+      "source_table": "Sales.BuyingGroups",
+      "primary_key": [
+        "BuyingGroupID"
+      ],
+      "key_columns": [
+        "BuyingGroupID"
+      ],
+      "key_semantics": "primary_key",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Sales.BuyingGroups.csv",
+      "full_row_count": 2,
+      "full_sha256": "364b8be9ab0d95c762d4e0cdc2669b6223465c43c7a45271f5fe3416b43be8ce",
+      "previous_input": "inputs/D0/WideWorldImporters.Sales.BuyingGroups.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Sales.BuyingGroups_Archive.csv": {
+      "columns": [
+        "BuyingGroupID",
+        "BuyingGroupName",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "row_count": 0,
+      "size_bytes": 61,
+      "sha256": "b9b7de67a80b84e3d4cc488ed0a7917cbf831e84b80deec239a25a2ac882e4b2",
+      "database": "WideWorldImporters",
+      "source_table": "Sales.BuyingGroups_Archive",
+      "primary_key": [],
+      "key_columns": [
+        "BuyingGroupID",
+        "BuyingGroupName",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "key_semantics": "whole_row_multiset",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Sales.BuyingGroups_Archive.csv",
+      "full_row_count": 0,
+      "full_sha256": "b9b7de67a80b84e3d4cc488ed0a7917cbf831e84b80deec239a25a2ac882e4b2",
+      "previous_input": "inputs/D0/WideWorldImporters.Sales.BuyingGroups_Archive.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Sales.CustomerCategories.csv": {
+      "columns": [
+        "CustomerCategoryID",
+        "CustomerCategoryName",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "row_count": 0,
+      "size_bytes": 71,
+      "sha256": "090a85966ced994fdc1b5d152c6162cdafc4c41f0f8be680a55ceced6a543a76",
+      "database": "WideWorldImporters",
+      "source_table": "Sales.CustomerCategories",
+      "primary_key": [
+        "CustomerCategoryID"
+      ],
+      "key_columns": [
+        "CustomerCategoryID"
+      ],
+      "key_semantics": "primary_key",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Sales.CustomerCategories.csv",
+      "full_row_count": 8,
+      "full_sha256": "a9d6fc78f86e580b18c013b52aabdc34d01c401df2b73c040ef82a26fa8e5ef3",
+      "previous_input": "inputs/D0/WideWorldImporters.Sales.CustomerCategories.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Sales.CustomerCategories_Archive.csv": {
+      "columns": [
+        "CustomerCategoryID",
+        "CustomerCategoryName",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "row_count": 0,
+      "size_bytes": 71,
+      "sha256": "090a85966ced994fdc1b5d152c6162cdafc4c41f0f8be680a55ceced6a543a76",
+      "database": "WideWorldImporters",
+      "source_table": "Sales.CustomerCategories_Archive",
+      "primary_key": [],
+      "key_columns": [
+        "CustomerCategoryID",
+        "CustomerCategoryName",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "key_semantics": "whole_row_multiset",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Sales.CustomerCategories_Archive.csv",
+      "full_row_count": 1,
+      "full_sha256": "a545ebf727d72ac32be999086582f3179ea772c70e19de3d8c1dbd996ab3afe6",
+      "previous_input": "inputs/D0/WideWorldImporters.Sales.CustomerCategories_Archive.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Sales.CustomerTransactions.csv": {
+      "columns": [
+        "CustomerTransactionID",
+        "CustomerID",
+        "TransactionTypeID",
+        "InvoiceID",
+        "PaymentMethodID",
+        "TransactionDate",
+        "AmountExcludingTax",
+        "TaxAmount",
+        "TransactionAmount",
+        "OutstandingBalance",
+        "FinalizationDate",
+        "IsFinalized",
+        "LastEditedBy",
+        "LastEditedWhen"
+      ],
+      "row_count": 689,
+      "size_bytes": 69892,
+      "sha256": "68256854b84b9a6554b8a091c680f75e1b544d9a439750a50e34d5b2dbe49afd",
+      "database": "WideWorldImporters",
+      "source_table": "Sales.CustomerTransactions",
+      "primary_key": [
+        "CustomerTransactionID"
+      ],
+      "key_columns": [
+        "CustomerTransactionID"
+      ],
+      "key_semantics": "primary_key",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Sales.CustomerTransactions.csv",
+      "full_row_count": 97752,
+      "full_sha256": "0b3a4714b014e8bbbe0fd6ad094f67479a619084832202ca46acf944b79d4765",
+      "previous_input": "inputs/D0/WideWorldImporters.Sales.CustomerTransactions.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Sales.Customers.csv": {
+      "columns": [
+        "CustomerID",
+        "CustomerName",
+        "BillToCustomerID",
+        "CustomerCategoryID",
+        "BuyingGroupID",
+        "PrimaryContactPersonID",
+        "AlternateContactPersonID",
+        "DeliveryMethodID",
+        "DeliveryCityID",
+        "PostalCityID",
+        "CreditLimit",
+        "AccountOpenedDate",
+        "StandardDiscountPercentage",
+        "IsStatementSent",
+        "IsOnCreditHold",
+        "PaymentDays",
+        "PhoneNumber",
+        "FaxNumber",
+        "DeliveryRun",
+        "RunPosition",
+        "WebsiteURL",
+        "DeliveryAddressLine1",
+        "DeliveryAddressLine2",
+        "DeliveryPostalCode",
+        "DeliveryLocation",
+        "PostalAddressLine1",
+        "PostalAddressLine2",
+        "PostalPostalCode",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "row_count": 0,
+      "size_bytes": 488,
+      "sha256": "89a5f79a2302ad6d52fa0bd5a80faf8b86bc76b706619033221c1f301a92f9f8",
+      "database": "WideWorldImporters",
+      "source_table": "Sales.Customers",
+      "primary_key": [
+        "CustomerID"
+      ],
+      "key_columns": [
+        "CustomerID"
+      ],
+      "key_semantics": "primary_key",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Sales.Customers.csv",
+      "full_row_count": 663,
+      "full_sha256": "64762619571b5e4301c69fa501686e50cc4044c7d43f49d9031a62f5a42cd9e6",
+      "previous_input": "inputs/D0/WideWorldImporters.Sales.Customers.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Sales.Customers_Archive.csv": {
+      "columns": [
+        "CustomerID",
+        "CustomerName",
+        "BillToCustomerID",
+        "CustomerCategoryID",
+        "BuyingGroupID",
+        "PrimaryContactPersonID",
+        "AlternateContactPersonID",
+        "DeliveryMethodID",
+        "DeliveryCityID",
+        "PostalCityID",
+        "CreditLimit",
+        "AccountOpenedDate",
+        "StandardDiscountPercentage",
+        "IsStatementSent",
+        "IsOnCreditHold",
+        "PaymentDays",
+        "PhoneNumber",
+        "FaxNumber",
+        "DeliveryRun",
+        "RunPosition",
+        "WebsiteURL",
+        "DeliveryAddressLine1",
+        "DeliveryAddressLine2",
+        "DeliveryPostalCode",
+        "DeliveryLocation",
+        "PostalAddressLine1",
+        "PostalAddressLine2",
+        "PostalPostalCode",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "row_count": 0,
+      "size_bytes": 488,
+      "sha256": "89a5f79a2302ad6d52fa0bd5a80faf8b86bc76b706619033221c1f301a92f9f8",
+      "database": "WideWorldImporters",
+      "source_table": "Sales.Customers_Archive",
+      "primary_key": [],
+      "key_columns": [
+        "CustomerID",
+        "CustomerName",
+        "BillToCustomerID",
+        "CustomerCategoryID",
+        "BuyingGroupID",
+        "PrimaryContactPersonID",
+        "AlternateContactPersonID",
+        "DeliveryMethodID",
+        "DeliveryCityID",
+        "PostalCityID",
+        "CreditLimit",
+        "AccountOpenedDate",
+        "StandardDiscountPercentage",
+        "IsStatementSent",
+        "IsOnCreditHold",
+        "PaymentDays",
+        "PhoneNumber",
+        "FaxNumber",
+        "DeliveryRun",
+        "RunPosition",
+        "WebsiteURL",
+        "DeliveryAddressLine1",
+        "DeliveryAddressLine2",
+        "DeliveryPostalCode",
+        "DeliveryLocation",
+        "PostalAddressLine1",
+        "PostalAddressLine2",
+        "PostalPostalCode",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "key_semantics": "whole_row_multiset",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Sales.Customers_Archive.csv",
+      "full_row_count": 51,
+      "full_sha256": "274da1b5ca43269da13a0747ede51ae4ed0432c76feb8965f3a85295d9d94d85",
+      "previous_input": "inputs/D0/WideWorldImporters.Sales.Customers_Archive.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Sales.InvoiceLines.csv": {
+      "columns": [
+        "InvoiceLineID",
+        "InvoiceID",
+        "StockItemID",
+        "Description",
+        "PackageTypeID",
+        "Quantity",
+        "UnitPrice",
+        "TaxRate",
+        "TaxAmount",
+        "LineProfit",
+        "ExtendedPrice",
+        "LastEditedBy",
+        "LastEditedWhen"
+      ],
+      "row_count": 1414,
+      "size_bytes": 179705,
+      "sha256": "96a3209800395ae4a87c3cd669fdce84638e565e7c29f788ed545c8ada2ee60f",
+      "database": "WideWorldImporters",
+      "source_table": "Sales.InvoiceLines",
+      "primary_key": [
+        "InvoiceLineID"
+      ],
+      "key_columns": [
+        "InvoiceLineID"
+      ],
+      "key_semantics": "primary_key",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Sales.InvoiceLines.csv",
+      "full_row_count": 229679,
+      "full_sha256": "06dc087e52fa7fab8173d045cef77b0186731ce676b9accaf13eb34ae98dfcfe",
+      "previous_input": "inputs/D0/WideWorldImporters.Sales.InvoiceLines.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Sales.Invoices.csv": {
+      "columns": [
+        "InvoiceID",
+        "CustomerID",
+        "BillToCustomerID",
+        "OrderID",
+        "DeliveryMethodID",
+        "ContactPersonID",
+        "AccountsPersonID",
+        "SalespersonPersonID",
+        "PackedByPersonID",
+        "InvoiceDate",
+        "CustomerPurchaseOrderNumber",
+        "IsCreditNote",
+        "CreditNoteReason",
+        "Comments",
+        "DeliveryInstructions",
+        "InternalComments",
+        "TotalDryItems",
+        "TotalChillerItems",
+        "DeliveryRun",
+        "RunPosition",
+        "ReturnedDeliveryData",
+        "ConfirmedDeliveryTime",
+        "ConfirmedReceivedBy",
+        "LastEditedBy",
+        "LastEditedWhen"
+      ],
+      "row_count": 519,
+      "size_bytes": 270780,
+      "sha256": "cb75f5ee7f42139e126040f7786385d7afa7a451bcf62530ae9a5c434cab474e",
+      "database": "WideWorldImporters",
+      "source_table": "Sales.Invoices",
+      "primary_key": [
+        "InvoiceID"
+      ],
+      "key_columns": [
+        "InvoiceID"
+      ],
+      "key_semantics": "primary_key",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Sales.Invoices.csv",
+      "full_row_count": 70945,
+      "full_sha256": "2c4aa6e432c4f4615aa6b8659e2fd8dbbb5572766703d3387e0c1a756d352b42",
+      "previous_input": "inputs/D0/WideWorldImporters.Sales.Invoices.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Sales.OrderLines.csv": {
+      "columns": [
+        "OrderLineID",
+        "OrderID",
+        "StockItemID",
+        "Description",
+        "PackageTypeID",
+        "Quantity",
+        "UnitPrice",
+        "TaxRate",
+        "PickedQuantity",
+        "PickingCompletedWhen",
+        "LastEditedBy",
+        "LastEditedWhen"
+      ],
+      "row_count": 1452,
+      "size_bytes": 199551,
+      "sha256": "74467b9a4cf76cfdd9ee1381de8828e7a334acca20fc25a62d20acca8bd3281c",
+      "database": "WideWorldImporters",
+      "source_table": "Sales.OrderLines",
+      "primary_key": [
+        "OrderLineID"
+      ],
+      "key_columns": [
+        "OrderLineID"
+      ],
+      "key_semantics": "primary_key",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Sales.OrderLines.csv",
+      "full_row_count": 232838,
+      "full_sha256": "9d29f404003a6457ac627f2d244754a9c04d972839534f9ab46f172a96edb1c6",
+      "previous_input": "inputs/D0/WideWorldImporters.Sales.OrderLines.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Sales.Orders.csv": {
+      "columns": [
+        "OrderID",
+        "CustomerID",
+        "SalespersonPersonID",
+        "PickedByPersonID",
+        "ContactPersonID",
+        "BackorderOrderID",
+        "OrderDate",
+        "ExpectedDeliveryDate",
+        "CustomerPurchaseOrderNumber",
+        "IsUndersupplyBackordered",
+        "Comments",
+        "DeliveryInstructions",
+        "InternalComments",
+        "PickingCompletedWhen",
+        "LastEditedBy",
+        "LastEditedWhen"
+      ],
+      "row_count": 473,
+      "size_bytes": 56565,
+      "sha256": "74c937215d3476695f8b74b927be0da80ef4c8d6f82d9e9fd35c2feb1e503e0a",
+      "database": "WideWorldImporters",
+      "source_table": "Sales.Orders",
+      "primary_key": [
+        "OrderID"
+      ],
+      "key_columns": [
+        "OrderID"
+      ],
+      "key_semantics": "primary_key",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Sales.Orders.csv",
+      "full_row_count": 74044,
+      "full_sha256": "3263cde85786c2ae550ecec7d73ca5ceb4f74ea61f6b54346c640b282653c2ca",
+      "previous_input": "inputs/D0/WideWorldImporters.Sales.Orders.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Warehouse.Colors.csv": {
+      "columns": [
+        "ColorID",
+        "ColorName",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "row_count": 0,
+      "size_bytes": 49,
+      "sha256": "6e0bb269f6d85407eb8f1fb2721022aa6308410c404d305d316e1f063b575565",
+      "database": "WideWorldImporters",
+      "source_table": "Warehouse.Colors",
+      "primary_key": [
+        "ColorID"
+      ],
+      "key_columns": [
+        "ColorID"
+      ],
+      "key_semantics": "primary_key",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Warehouse.Colors.csv",
+      "full_row_count": 36,
+      "full_sha256": "7d349e9575897814ad54dbc16c9a3aee760b2ac3d2e905c433b75aaeb0bbfec8",
+      "previous_input": "inputs/D0/WideWorldImporters.Warehouse.Colors.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Warehouse.Colors_Archive.csv": {
+      "columns": [
+        "ColorID",
+        "ColorName",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "row_count": 0,
+      "size_bytes": 49,
+      "sha256": "6e0bb269f6d85407eb8f1fb2721022aa6308410c404d305d316e1f063b575565",
+      "database": "WideWorldImporters",
+      "source_table": "Warehouse.Colors_Archive",
+      "primary_key": [],
+      "key_columns": [
+        "ColorID",
+        "ColorName",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "key_semantics": "whole_row_multiset",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Warehouse.Colors_Archive.csv",
+      "full_row_count": 1,
+      "full_sha256": "4dba1d2c20a16b5da4ae1efb92f6fbc6ef9a8b07fabaf5ee3cec1862e3807974",
+      "previous_input": "inputs/D0/WideWorldImporters.Warehouse.Colors_Archive.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Warehouse.PackageTypes.csv": {
+      "columns": [
+        "PackageTypeID",
+        "PackageTypeName",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "row_count": 0,
+      "size_bytes": 61,
+      "sha256": "12a181932f99f71c774de7842e6d23fa854513142ae504e7fb11b46219735b0d",
+      "database": "WideWorldImporters",
+      "source_table": "Warehouse.PackageTypes",
+      "primary_key": [
+        "PackageTypeID"
+      ],
+      "key_columns": [
+        "PackageTypeID"
+      ],
+      "key_semantics": "primary_key",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Warehouse.PackageTypes.csv",
+      "full_row_count": 14,
+      "full_sha256": "745c9dd31ae7e218e8f9ee4fd0228898071bbff4539c45f49925eab8ba07bdf7",
+      "previous_input": "inputs/D0/WideWorldImporters.Warehouse.PackageTypes.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Warehouse.PackageTypes_Archive.csv": {
+      "columns": [
+        "PackageTypeID",
+        "PackageTypeName",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "row_count": 0,
+      "size_bytes": 61,
+      "sha256": "12a181932f99f71c774de7842e6d23fa854513142ae504e7fb11b46219735b0d",
+      "database": "WideWorldImporters",
+      "source_table": "Warehouse.PackageTypes_Archive",
+      "primary_key": [],
+      "key_columns": [
+        "PackageTypeID",
+        "PackageTypeName",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "key_semantics": "whole_row_multiset",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Warehouse.PackageTypes_Archive.csv",
+      "full_row_count": 0,
+      "full_sha256": "12a181932f99f71c774de7842e6d23fa854513142ae504e7fb11b46219735b0d",
+      "previous_input": "inputs/D0/WideWorldImporters.Warehouse.PackageTypes_Archive.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Warehouse.StockItemHoldings.csv": {
+      "columns": [
+        "StockItemID",
+        "QuantityOnHand",
+        "BinLocation",
+        "LastStocktakeQuantity",
+        "LastCostPrice",
+        "ReorderLevel",
+        "TargetStockLevel",
+        "LastEditedBy",
+        "LastEditedWhen"
+      ],
+      "row_count": 227,
+      "size_bytes": 14109,
+      "sha256": "44417a7cc2226d70fdc73c4836f1b8183bd8364747c910054ba3a8f5eb8d5d9f",
+      "database": "WideWorldImporters",
+      "source_table": "Warehouse.StockItemHoldings",
+      "primary_key": [
+        "StockItemID"
+      ],
+      "key_columns": [
+        "StockItemID"
+      ],
+      "key_semantics": "primary_key",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Warehouse.StockItemHoldings.csv",
+      "full_row_count": 227,
+      "full_sha256": "44417a7cc2226d70fdc73c4836f1b8183bd8364747c910054ba3a8f5eb8d5d9f",
+      "previous_input": "inputs/D0/WideWorldImporters.Warehouse.StockItemHoldings.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Warehouse.StockItemTransactions.csv": {
+      "columns": [
+        "StockItemTransactionID",
+        "StockItemID",
+        "TransactionTypeID",
+        "CustomerID",
+        "InvoiceID",
+        "SupplierID",
+        "PurchaseOrderID",
+        "TransactionOccurredWhen",
+        "Quantity",
+        "LastEditedBy",
+        "LastEditedWhen"
+      ],
+      "row_count": 1462,
+      "size_bytes": 139986,
+      "sha256": "9653efb258213beb291b7d0a477375ecaec2a82474e091f0c3d164c283408b5f",
+      "database": "WideWorldImporters",
+      "source_table": "Warehouse.StockItemTransactions",
+      "primary_key": [
+        "StockItemTransactionID"
+      ],
+      "key_columns": [
+        "StockItemTransactionID"
+      ],
+      "key_semantics": "primary_key",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Warehouse.StockItemTransactions.csv",
+      "full_row_count": 238129,
+      "full_sha256": "90edae099f8bd5249133a730318cd5853dd824343f54857b8b8beff5c5e16a69",
+      "previous_input": "inputs/D0/WideWorldImporters.Warehouse.StockItemTransactions.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Warehouse.StockItems.csv": {
+      "columns": [
+        "StockItemID",
+        "StockItemName",
+        "SupplierID",
+        "ColorID",
+        "UnitPackageID",
+        "OuterPackageID",
+        "Brand",
+        "Size",
+        "LeadTimeDays",
+        "QuantityPerOuter",
+        "IsChillerStock",
+        "Barcode",
+        "TaxRate",
+        "UnitPrice",
+        "RecommendedRetailPrice",
+        "TypicalWeightPerUnit",
+        "MarketingComments",
+        "InternalComments",
+        "Photo",
+        "CustomFields",
+        "Tags",
+        "SearchDetails",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "row_count": 0,
+      "size_bytes": 304,
+      "sha256": "078e3cd7b65794cdc858ce9e562a8f64b809532644052b03fda5f8e92d39642e",
+      "database": "WideWorldImporters",
+      "source_table": "Warehouse.StockItems",
+      "primary_key": [
+        "StockItemID"
+      ],
+      "key_columns": [
+        "StockItemID"
+      ],
+      "key_semantics": "primary_key",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Warehouse.StockItems.csv",
+      "full_row_count": 227,
+      "full_sha256": "9829d3f09048a7a9f70a9369e959d5e70b6539c2a68bc44032108e61d7335856",
+      "previous_input": "inputs/D0/WideWorldImporters.Warehouse.StockItems.csv",
+      "input_kind": "upsert"
+    },
+    "inputs/D1/WideWorldImporters.Warehouse.StockItems_Archive.csv": {
+      "columns": [
+        "StockItemID",
+        "StockItemName",
+        "SupplierID",
+        "ColorID",
+        "UnitPackageID",
+        "OuterPackageID",
+        "Brand",
+        "Size",
+        "LeadTimeDays",
+        "QuantityPerOuter",
+        "IsChillerStock",
+        "Barcode",
+        "TaxRate",
+        "UnitPrice",
+        "RecommendedRetailPrice",
+        "TypicalWeightPerUnit",
+        "MarketingComments",
+        "InternalComments",
+        "Photo",
+        "CustomFields",
+        "Tags",
+        "SearchDetails",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "row_count": 0,
+      "size_bytes": 304,
+      "sha256": "078e3cd7b65794cdc858ce9e562a8f64b809532644052b03fda5f8e92d39642e",
+      "database": "WideWorldImporters",
+      "source_table": "Warehouse.StockItems_Archive",
+      "primary_key": [],
+      "key_columns": [
+        "StockItemID",
+        "StockItemName",
+        "SupplierID",
+        "ColorID",
+        "UnitPackageID",
+        "OuterPackageID",
+        "Brand",
+        "Size",
+        "LeadTimeDays",
+        "QuantityPerOuter",
+        "IsChillerStock",
+        "Barcode",
+        "TaxRate",
+        "UnitPrice",
+        "RecommendedRetailPrice",
+        "TypicalWeightPerUnit",
+        "MarketingComments",
+        "InternalComments",
+        "Photo",
+        "CustomFields",
+        "Tags",
+        "SearchDetails",
+        "LastEditedBy",
+        "ValidFrom",
+        "ValidTo"
+      ],
+      "key_semantics": "whole_row_multiset",
+      "full_path": "/home/ubuntu/golden-work/full/D1/WideWorldImporters.Warehouse.StockItems_Archive.csv",
+      "full_row_count": 444,
+      "full_sha256": "34db7d4fa225c9ad09ca4502b6f9a01e4d387c66dfba63ed5e81b36e550756b7",
+      "previous_input": "inputs/D0/WideWorldImporters.Warehouse.StockItems_Archive.csv",
+      "input_kind": "upsert"
+    },
+    "outputs/D1/tables/Dimension.City.csv": {
+      "columns": [
+        "city_key",
+        "wwi_city_id",
+        "city",
+        "state_province",
+        "country",
+        "continent",
+        "sales_territory",
+        "region",
+        "subregion",
+        "location",
+        "latest_recorded_population",
+        "valid_from",
+        "valid_to",
+        "lineage_key"
+      ],
+      "row_count": 116295,
+      "size_bytes": 21828180,
+      "sha256": "7db4bddaebb7e8b40d82b5c6f0af7a2d922d06633339bbbd22a9b5831ee48101",
+      "database": "WideWorldImportersDW",
+      "source_table": "Dimension.City",
+      "source_columns": [
+        "City Key",
+        "WWI City ID",
+        "City",
+        "State Province",
+        "Country",
+        "Continent",
+        "Sales Territory",
+        "Region",
+        "Subregion",
+        "Location",
+        "Latest Recorded Population",
+        "Valid From",
+        "Valid To",
+        "Lineage Key"
+      ]
+    },
+    "outputs/D1/tables/Dimension.Customer.csv": {
+      "columns": [
+        "customer_key",
+        "wwi_customer_id",
+        "customer",
+        "bill_to_customer",
+        "category",
+        "buying_group",
+        "primary_contact",
+        "postal_code",
+        "valid_from",
+        "valid_to",
+        "lineage_key"
+      ],
+      "row_count": 403,
+      "size_bytes": 69338,
+      "sha256": "916b76aa6b9041340a7eb0a988ae343b3beb1f92fb2113d5f5b5a7a5d18fb68e",
+      "database": "WideWorldImportersDW",
+      "source_table": "Dimension.Customer",
+      "source_columns": [
+        "Customer Key",
+        "WWI Customer ID",
+        "Customer",
+        "Bill To Customer",
+        "Category",
+        "Buying Group",
+        "Primary Contact",
+        "Postal Code",
+        "Valid From",
+        "Valid To",
+        "Lineage Key"
+      ]
+    },
+    "outputs/D1/tables/Dimension.Date.csv": {
+      "columns": [
+        "date",
+        "day_number",
+        "day",
+        "month",
+        "short_month",
+        "calendar_month_number",
+        "calendar_month_label",
+        "calendar_year",
+        "calendar_year_label",
+        "fiscal_month_number",
+        "fiscal_month_label",
+        "fiscal_year",
+        "fiscal_year_label",
+        "iso_week_number"
+      ],
+      "row_count": 1461,
+      "size_bytes": 118380,
+      "sha256": "4c52709c93b5a39bc44835d352434c5eeac0e4de4097b59afa98e579ec39b04f",
+      "database": "WideWorldImportersDW",
+      "source_table": "Dimension.Date",
+      "source_columns": [
+        "Date",
+        "Day Number",
+        "Day",
+        "Month",
+        "Short Month",
+        "Calendar Month Number",
+        "Calendar Month Label",
+        "Calendar Year",
+        "Calendar Year Label",
+        "Fiscal Month Number",
+        "Fiscal Month Label",
+        "Fiscal Year",
+        "Fiscal Year Label",
+        "ISO Week Number"
+      ]
+    },
+    "outputs/D1/tables/Dimension.Employee.csv": {
+      "columns": [
+        "employee_key",
+        "wwi_employee_id",
+        "employee",
+        "preferred_name",
+        "is_salesperson",
+        "photo",
+        "valid_from",
+        "valid_to",
+        "lineage_key"
+      ],
+      "row_count": 213,
+      "size_bytes": 18875,
+      "sha256": "4cf866971358ac9efa244fab2c1a438ea71d0e47d10265e46aa8c81a39014603",
+      "database": "WideWorldImportersDW",
+      "source_table": "Dimension.Employee",
+      "source_columns": [
+        "Employee Key",
+        "WWI Employee ID",
+        "Employee",
+        "Preferred Name",
+        "Is Salesperson",
+        "Photo",
+        "Valid From",
+        "Valid To",
+        "Lineage Key"
+      ]
+    },
+    "outputs/D1/tables/Dimension.Payment_Method.csv": {
+      "columns": [
+        "payment_method_key",
+        "wwi_payment_method_id",
+        "payment_method",
+        "valid_from",
+        "valid_to",
+        "lineage_key"
+      ],
+      "row_count": 6,
+      "size_bytes": 507,
+      "sha256": "ca8472a2ce00853555631c0ffe4f2f508f8b7caad869fa12c4c34eb20cce360b",
+      "database": "WideWorldImportersDW",
+      "source_table": "Dimension.Payment Method",
+      "source_columns": [
+        "Payment Method Key",
+        "WWI Payment Method ID",
+        "Payment Method",
+        "Valid From",
+        "Valid To",
+        "Lineage Key"
+      ]
+    },
+    "outputs/D1/tables/Dimension.Stock_Item.csv": {
+      "columns": [
+        "stock_item_key",
+        "wwi_stock_item_id",
+        "stock_item",
+        "color",
+        "selling_package",
+        "buying_package",
+        "brand",
+        "size",
+        "lead_time_days",
+        "quantity_per_outer",
+        "is_chiller_stock",
+        "barcode",
+        "tax_rate",
+        "unit_price",
+        "recommended_retail_price",
+        "typical_weight_per_unit",
+        "photo",
+        "valid_from",
+        "valid_to",
+        "lineage_key"
+      ],
+      "row_count": 672,
+      "size_bytes": 116751,
+      "sha256": "5f370618b4afd61b8c2a46d435e7daa15b791ef455528237db74574a7702047c",
+      "database": "WideWorldImportersDW",
+      "source_table": "Dimension.Stock Item",
+      "source_columns": [
+        "Stock Item Key",
+        "WWI Stock Item ID",
+        "Stock Item",
+        "Color",
+        "Selling Package",
+        "Buying Package",
+        "Brand",
+        "Size",
+        "Lead Time Days",
+        "Quantity Per Outer",
+        "Is Chiller Stock",
+        "Barcode",
+        "Tax Rate",
+        "Unit Price",
+        "Recommended Retail Price",
+        "Typical Weight Per Unit",
+        "Photo",
+        "Valid From",
+        "Valid To",
+        "Lineage Key"
+      ]
+    },
+    "outputs/D1/tables/Dimension.Supplier.csv": {
+      "columns": [
+        "supplier_key",
+        "wwi_supplier_id",
+        "supplier",
+        "category",
+        "primary_contact",
+        "supplier_reference",
+        "payment_days",
+        "postal_code",
+        "valid_from",
+        "valid_to",
+        "lineage_key"
+      ],
+      "row_count": 28,
+      "size_bytes": 3872,
+      "sha256": "76a5edd43c4d9809ea59c3c6cdf1ffe2b689ccd6ecd91fce064015e47f6d3dc6",
+      "database": "WideWorldImportersDW",
+      "source_table": "Dimension.Supplier",
+      "source_columns": [
+        "Supplier Key",
+        "WWI Supplier ID",
+        "Supplier",
+        "Category",
+        "Primary Contact",
+        "Supplier Reference",
+        "Payment Days",
+        "Postal Code",
+        "Valid From",
+        "Valid To",
+        "Lineage Key"
+      ]
+    },
+    "outputs/D1/tables/Dimension.Transaction_Type.csv": {
+      "columns": [
+        "transaction_type_key",
+        "wwi_transaction_type_id",
+        "transaction_type",
+        "valid_from",
+        "valid_to",
+        "lineage_key"
+      ],
+      "row_count": 15,
+      "size_bytes": 1294,
+      "sha256": "bc2d12796722890df841da85b2f6a90adafda525f6f38fbb4775366bf6de8fa7",
+      "database": "WideWorldImportersDW",
+      "source_table": "Dimension.Transaction Type",
+      "source_columns": [
+        "Transaction Type Key",
+        "WWI Transaction Type ID",
+        "Transaction Type",
+        "Valid From",
+        "Valid To",
+        "Lineage Key"
+      ]
+    },
+    "outputs/D1/tables/Fact.Movement.csv": {
+      "columns": [
+        "movement_key",
+        "date_key",
+        "stock_item_key",
+        "customer_key",
+        "supplier_key",
+        "transaction_type_key",
+        "wwi_stock_item_transaction_id",
+        "wwi_invoice_id",
+        "wwi_purchase_order_id",
+        "quantity",
+        "lineage_key"
+      ],
+      "row_count": 238129,
+      "size_bytes": 11978490,
+      "sha256": "657726d98cb870771c98e8e9b176bd71ed20ed9b871c21cedcb9e43749a96e54",
+      "database": "WideWorldImportersDW",
+      "source_table": "Fact.Movement",
+      "source_columns": [
+        "Movement Key",
+        "Date Key",
+        "Stock Item Key",
+        "Customer Key",
+        "Supplier Key",
+        "Transaction Type Key",
+        "WWI Stock Item Transaction ID",
+        "WWI Invoice ID",
+        "WWI Purchase Order ID",
+        "Quantity",
+        "Lineage Key"
+      ]
+    },
+    "outputs/D1/tables/Fact.Order.csv": {
+      "columns": [
+        "order_key",
+        "city_key",
+        "customer_key",
+        "stock_item_key",
+        "order_date_key",
+        "picked_date_key",
+        "salesperson_key",
+        "picker_key",
+        "wwi_order_id",
+        "wwi_backorder_id",
+        "description",
+        "package",
+        "quantity",
+        "unit_price",
+        "tax_rate",
+        "total_excluding_tax",
+        "tax_amount",
+        "total_including_tax",
+        "lineage_key"
+      ],
+      "row_count": 232838,
+      "size_bytes": 33395332,
+      "sha256": "fbea29f1dc37031c9bf8dd6e8ee287928cf346a317acdef4057402c5da0d445b",
+      "database": "WideWorldImportersDW",
+      "source_table": "Fact.Order",
+      "source_columns": [
+        "Order Key",
+        "City Key",
+        "Customer Key",
+        "Stock Item Key",
+        "Order Date Key",
+        "Picked Date Key",
+        "Salesperson Key",
+        "Picker Key",
+        "WWI Order ID",
+        "WWI Backorder ID",
+        "Description",
+        "Package",
+        "Quantity",
+        "Unit Price",
+        "Tax Rate",
+        "Total Excluding Tax",
+        "Tax Amount",
+        "Total Including Tax",
+        "Lineage Key"
+      ]
+    },
+    "outputs/D1/tables/Fact.Purchase.csv": {
+      "columns": [
+        "purchase_key",
+        "date_key",
+        "supplier_key",
+        "stock_item_key",
+        "wwi_purchase_order_id",
+        "ordered_outers",
+        "ordered_quantity",
+        "received_outers",
+        "package",
+        "is_order_finalized",
+        "lineage_key"
+      ],
+      "row_count": 8415,
+      "size_bytes": 441318,
+      "sha256": "703f37899cf13dd9132b1bc3c1a4f1944abc7e0f3eeeb7b9e60f6d762d1f172a",
+      "database": "WideWorldImportersDW",
+      "source_table": "Fact.Purchase",
+      "source_columns": [
+        "Purchase Key",
+        "Date Key",
+        "Supplier Key",
+        "Stock Item Key",
+        "WWI Purchase Order ID",
+        "Ordered Outers",
+        "Ordered Quantity",
+        "Received Outers",
+        "Package",
+        "Is Order Finalized",
+        "Lineage Key"
+      ]
+    },
+    "outputs/D1/tables/Fact.Sale.csv": {
+      "columns": [
+        "sale_key",
+        "city_key",
+        "customer_key",
+        "bill_to_customer_key",
+        "stock_item_key",
+        "invoice_date_key",
+        "delivery_date_key",
+        "salesperson_key",
+        "wwi_invoice_id",
+        "description",
+        "package",
+        "quantity",
+        "unit_price",
+        "tax_rate",
+        "total_excluding_tax",
+        "tax_amount",
+        "profit",
+        "total_including_tax",
+        "total_dry_items",
+        "total_chiller_items",
+        "lineage_key"
+      ],
+      "row_count": 229679,
+      "size_bytes": 34834560,
+      "sha256": "5d121f1dc356417665ee6cad6bd2985ca6180e4c962d1e20861da80c89d80fc8",
+      "database": "WideWorldImportersDW",
+      "source_table": "Fact.Sale",
+      "source_columns": [
+        "Sale Key",
+        "City Key",
+        "Customer Key",
+        "Bill To Customer Key",
+        "Stock Item Key",
+        "Invoice Date Key",
+        "Delivery Date Key",
+        "Salesperson Key",
+        "WWI Invoice ID",
+        "Description",
+        "Package",
+        "Quantity",
+        "Unit Price",
+        "Tax Rate",
+        "Total Excluding Tax",
+        "Tax Amount",
+        "Profit",
+        "Total Including Tax",
+        "Total Dry Items",
+        "Total Chiller Items",
+        "Lineage Key"
+      ]
+    },
+    "outputs/D1/tables/Fact.Stock_Holding.csv": {
+      "columns": [
+        "stock_holding_key",
+        "stock_item_key",
+        "quantity_on_hand",
+        "bin_location",
+        "last_stocktake_quantity",
+        "last_cost_price",
+        "reorder_level",
+        "target_stock_level",
+        "lineage_key"
+      ],
+      "row_count": 227,
+      "size_bytes": 8903,
+      "sha256": "08bd8888bf3dea4db96d0a82b37b7abcfb98f58db926dfc8036d49be0e998fee",
+      "database": "WideWorldImportersDW",
+      "source_table": "Fact.Stock Holding",
+      "source_columns": [
+        "Stock Holding Key",
+        "Stock Item Key",
+        "Quantity On Hand",
+        "Bin Location",
+        "Last Stocktake Quantity",
+        "Last Cost Price",
+        "Reorder Level",
+        "Target Stock Level",
+        "Lineage Key"
+      ]
+    },
+    "outputs/D1/tables/Fact.Transaction.csv": {
+      "columns": [
+        "transaction_key",
+        "date_key",
+        "customer_key",
+        "bill_to_customer_key",
+        "supplier_key",
+        "transaction_type_key",
+        "payment_method_key",
+        "wwi_customer_transaction_id",
+        "wwi_supplier_transaction_id",
+        "wwi_invoice_id",
+        "wwi_purchase_order_id",
+        "supplier_invoice_number",
+        "total_excluding_tax",
+        "tax_amount",
+        "total_including_tax",
+        "outstanding_balance",
+        "is_finalized",
+        "lineage_key"
+      ],
+      "row_count": 100290,
+      "size_bytes": 8061066,
+      "sha256": "62c56f9485ca6521c2f87cf3159fa1d809cfb2aba83170ecae814c5f7c9e9c2c",
+      "database": "WideWorldImportersDW",
+      "source_table": "Fact.Transaction",
+      "source_columns": [
+        "Transaction Key",
+        "Date Key",
+        "Customer Key",
+        "Bill To Customer Key",
+        "Supplier Key",
+        "Transaction Type Key",
+        "Payment Method Key",
+        "WWI Customer Transaction ID",
+        "WWI Supplier Transaction ID",
+        "WWI Invoice ID",
+        "WWI Purchase Order ID",
+        "Supplier Invoice Number",
+        "Total Excluding Tax",
+        "Tax Amount",
+        "Total Including Tax",
+        "Outstanding Balance",
+        "Is Finalized",
+        "Lineage Key"
+      ]
+    },
+    "outputs/D1/tables/Integration.ETL_Cutoff.csv": {
+      "columns": [
+        "table_name",
+        "cutoff_time"
+      ],
+      "row_count": 14,
+      "size_bytes": 550,
+      "sha256": "011a0fb0d54a0c2594ca128d1fcc97b928f1123eb5c51dc5cab164a8d9aeec8e",
+      "database": "WideWorldImportersDW",
+      "source_table": "Integration.ETL Cutoff",
+      "source_columns": [
+        "Table Name",
+        "Cutoff Time"
+      ]
+    },
+    "outputs/D1/tables/Integration.Lineage.csv": {
+      "columns": [
+        "lineage_key",
+        "data_load_started",
+        "table_name",
+        "data_load_completed",
+        "was_successful",
+        "source_system_cutoff_time"
+      ],
+      "row_count": 26,
+      "size_bytes": 2667,
+      "sha256": "bb1db2ef13fa6599b758d69739bcff4f997489ff8156bc6e28b293597e2367fc",
+      "database": "WideWorldImportersDW",
+      "source_table": "Integration.Lineage",
+      "source_columns": [
+        "Lineage Key",
+        "Data Load Started",
+        "Table Name",
+        "Data Load Completed",
+        "Was Successful",
+        "Source System Cutoff Time"
+      ]
+    },
+    "outputs/D1/reports/sale-by-day.csv": {
+      "columns": [
+        "invoice_date_key",
+        "sale_rows",
+        "total_including_tax"
+      ],
+      "row_count": 1075,
+      "size_bytes": 26714,
+      "sha256": "f98c67d648c60582947acaa9cf5cb53492f86324bc27ca5683be7564049bf6c7",
+      "report": "sale-by-day",
+      "source_columns": [
+        "Invoice Date Key",
+        "SaleRows",
+        "TotalIncludingTax"
+      ]
+    },
+    "outputs/D1/reports/customer-history.csv": {
+      "columns": [
+        "customer_key",
+        "wwi_customer_id",
+        "customer",
+        "valid_from",
+        "valid_to"
+      ],
+      "row_count": 403,
+      "size_bytes": 38355,
+      "sha256": "081c76408cd24a00111188ed2b213fad92f35cd753ebb03bb50750bd22210e3a",
+      "report": "customer-history",
+      "source_columns": [
+        "Customer Key",
+        "WWI Customer ID",
+        "Customer",
+        "Valid From",
+        "Valid To"
+      ]
+    }
+  },
+  "runtime_seconds": 31.134
+}
