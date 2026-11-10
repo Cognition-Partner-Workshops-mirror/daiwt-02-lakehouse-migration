@@ -183,7 +183,6 @@ def test_lazy_frame_helper(monkeypatch):
 
 def test_job_and_registry():
     job = yaml.safe_load((ROOT / "resources/governance.job.yml").read_text())["resources"]["jobs"]["governance"]
-    assert job["permissions"] == [{"group_name": "users", "level": "CAN_VIEW"}]
     assert job["name"] == "${var.job_name_prefix}governance"
     assert {p["name"]: p["default"] for p in job["parameters"]} == {
         k: "${var." + k + "}" for k in ("drop", "last_cutoff", "new_cutoff")}

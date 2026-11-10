@@ -3,9 +3,6 @@ resources:
     governance:
       name: ${var.job_name_prefix}governance
       max_concurrent_runs: 1
-      permissions:
-        - group_name: users
-          level: CAN_VIEW
       parameters:
         - name: drop
           default: ${var.drop}
