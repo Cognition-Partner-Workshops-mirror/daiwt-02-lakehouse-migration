@@ -1,0 +1,31 @@
+resources:
+  jobs:
+    wwi_fact_sale_to_gold:
+      name: ${var.job_name_prefix}wwi_fact_sale_to_gold
+      max_concurrent_runs: 1
+      parameters:
+        - name: drop
+          default: ${var.drop}
+        - name: last_cutoff
+          default: ${var.last_cutoff}
+        - name: new_cutoff
+          default: ${var.new_cutoff}
+      tasks:
+        - task_key: load
+          notebook_task:
+            notebook_path: ../src/sql/units/wwi_fact_sale_to_gold/job.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              silver_schema: ${var.silver_schema}
+              bronze_schema: ${var.bronze_schema}
+              golden_path: ${var.golden_path}
+        - task_key: parity
+          depends_on:
+            - task_key: load
+          notebook_task:
+            notebook_path: ../src/sql/units/wwi_fact_sale_to_gold/verify_sale.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              golden_path: ${var.golden_path}
