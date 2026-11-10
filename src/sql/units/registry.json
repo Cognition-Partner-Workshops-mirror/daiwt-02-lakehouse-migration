@@ -147,7 +147,8 @@
       "bronze.s06_supplier_run_window"
     ],
     "depends_on": [
-      "bronze_landing_replay"
+      "bronze_landing_replay",
+      "silver_temporal_views"
     ]
   }
 }

@@ -83,7 +83,7 @@ def test_runner_contract():
     tasks = job['tasks']
     assert [t['task_key'] for t in tasks] == ['run_window', 'silver', 'parity']
     registry = json.loads((ROOT / 'src/sql/units/registry.json').read_text())['s06_supplier']
-    assert registry['depends_on'] == ['bronze_landing_replay']
+    assert registry['depends_on'] == ['bronze_landing_replay', 'silver_temporal_views']
     assert registry['outputs'] == []
     assert not any('raw' in table for table in registry['owns'])
 
@@ -123,7 +123,7 @@ def test_expected_multiset_changes(tmp_path):
     assert logic.expected(tmp_path, 'D1') == Counter({('new',) * 9: 1, ('same',) * 9: 1})
 
 
-@pytest.mark.parametrize('drop', ['D0', 'D2'])
+@pytest.mark.parametrize('drop', ['D0', 'D2', 'BAD'])
 def test_run_window_notebook(monkeypatch, drop):
     monkeypatch.setitem(sys.modules, 'logic', logic)
     saved = {}
@@ -139,8 +139,15 @@ def test_run_window_notebook(monkeypatch, drop):
     parameters = dict(catalog='test', bronze_schema='bronze', golden_path=str(ROOT / 'golden'),
                       drop=drop, last_cutoff='last', new_cutoff='new')
     widgets = SimpleNamespace(text=lambda *args: None, get=parameters.__getitem__)
-    runpy.run_path(str(ROOT / 'src/sql/units/s06_supplier/run_window.py'), init_globals={
-        'spark': SimpleNamespace(createDataFrame=Frame), 'dbutils': SimpleNamespace(widgets=widgets)})
+    def run():
+        runpy.run_path(str(ROOT / 'src/sql/units/s06_supplier/run_window.py'), init_globals={
+            'spark': SimpleNamespace(createDataFrame=Frame), 'dbutils': SimpleNamespace(widgets=widgets)})
+    if drop == 'BAD':
+        with pytest.raises(ValueError, match='invalid drop'):
+            run()
+        assert not saved
+        return
+    run()
     assert len(saved) == 1
     assert saved['test.bronze.s06_supplier_run_window'] == [(drop, 'last', 'new')]
 
@@ -161,11 +168,19 @@ def test_spark_query_matches_walk():
             schema = ','.join(f'{name} STRING' for name in rows[0])
             spark.createDataFrame([tuple(r.values()) for r in rows], schema).createOrReplaceTempView(table)
             spark.createDataFrame([], schema).createOrReplaceTempView(table + '_archive')
+            spark.sql(f"SELECT *, ValidFrom_str valid_from, ValidTo_str valid_to FROM {table} "
+                      f"UNION ALL SELECT *, ValidFrom_str valid_from, ValidTo_str valid_to FROM {table}_archive"
+                      ).createOrReplaceTempView(table + '_history')
+        spark.sql('SELECT DISTINCT source_table, valid_from FROM (' + ' UNION ALL '.join(
+            f"SELECT '{table}' source_table, valid_from FROM {table}_history" for table in
+            ('purchasing_suppliers', 'purchasing_supplier_categories', 'application_people')) + ')'
+                  ).createOrReplaceTempView('temporal_change_events')
         spark.createDataFrame([('D1', '2015-12-31', '2016-02-01')],
                               'drop STRING, last_cutoff STRING, new_cutoff STRING').createOrReplaceTempView('run_window')
         query = logic.change_sql('unused', window_table='run_window').replace('unused.', '')
         actual = Counter(tuple(r[c] for c in logic.COLUMNS) for r in spark.sql(query).collect())
         assert actual == Counter(logic.walk(suppliers, categories, [p], '2015-12-31', '2016-02-01'))
         assert len(list(actual.elements())) == 3
+        assert not spark.sql(logic.change_sql('unused', '2016-02-01', '2016-02-01').replace('unused.', '')).collect()
     finally:
         spark.stop()

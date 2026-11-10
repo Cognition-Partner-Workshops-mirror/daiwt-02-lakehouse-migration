@@ -80,26 +80,24 @@ def expected(root, drop):
     return rows(drop) - rows(previous)
 
 
-def change_sql(bronze, last=None, new=None, window_table=None):
+def change_sql(silver, last=None, new=None, window_table=None):
     lower = f'(SELECT last_cutoff FROM {window_table})' if window_table else f"'{last}'"
     upper = f'(SELECT new_cutoff FROM {window_table})' if window_table else f"'{new}'"
-    def history(table):
-        return (f"SELECT *, ValidFrom_str valid_from, ValidTo_str valid_to, 'current' _version_source FROM {bronze}.{table} "
-                f"UNION ALL SELECT *, ValidFrom_str valid_from, ValidTo_str valid_to, 'archive' _version_source FROM {bronze}.{table}_archive")
     return f"""
-WITH purchasing_suppliers_history AS ({history('purchasing_suppliers')}),
-purchasing_supplier_categories_history AS ({history('purchasing_supplier_categories')}),
-application_people_history AS ({history('application_people')}),
-s AS (SELECT * FROM purchasing_suppliers_history),
-c AS (SELECT * FROM purchasing_supplier_categories_history),
-p AS (SELECT * FROM application_people_history),
+WITH s AS (SELECT * FROM {silver}.purchasing_suppliers_history),
+c AS (SELECT * FROM {silver}.purchasing_supplier_categories_history),
+p AS (SELECT * FROM {silver}.application_people_history),
+event_times AS (
+ SELECT source_table, valid_from FROM {silver}.temporal_change_events
+ WHERE valid_from > {lower} AND valid_from <= {upper}
+),
 events AS (
- SELECT 's' kind, SupplierID id, valid_from t FROM s
- WHERE valid_from > {lower} AND valid_from <= {upper}
+ SELECT 's' kind, s.SupplierID id, s.valid_from t FROM s JOIN event_times e
+ ON e.source_table = 'purchasing_suppliers' AND e.valid_from = s.valid_from
  UNION ALL
- SELECT 'c', SupplierCategoryID, valid_from FROM c
- WHERE valid_from > {lower} AND valid_from <= {upper}
- AND valid_from <> '2020-01-01 00:00:00.0000000'
+ SELECT 'c', c.SupplierCategoryID, c.valid_from FROM c JOIN event_times e
+ ON e.source_table = 'purchasing_supplier_categories' AND e.valid_from = c.valid_from
+ WHERE c.valid_from <> '2020-01-01 00:00:00.0000000'
 ), staged AS (
  SELECT s.SupplierID wwi_supplier_id, s.SupplierName supplier,
  c.SupplierCategoryName category, p.FullName primary_contact,

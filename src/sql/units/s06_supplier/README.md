@@ -8,23 +8,26 @@ staged start. No no-op suppression or event deduplication is performed.
 ## Platform integration
 
 P4's `bronze_landing_replay` owns and replays the shared bronze tables.
-The registry dependency makes the merged runner execute it before S06 on every
-drop. S06 does not ingest or own any shared source or raw tables.
+The registry dependencies order P4 and P6 before S06 when selected together.
+S06 does not ingest or own any shared source or raw tables.
 
 The job accepts `drop`, `last_cutoff`, `new_cutoff` from `ci/run_units.py`.
-`ci/dev_verify.sh pr_18 s06_supplier` selects S06 and its dependency closure,
-cleans owned objects, then runs D0, D1, D2 in order. Each S06 run writes its
+`ci/dev_verify.sh pr_18 bronze_landing_replay,silver_temporal_views,s06_supplier`
+selects the prerequisites explicitly: the merged runner orders selected units
+but does not add prerequisites. It cleans owned objects, then runs D0, D1, D2
+in order. Each S06 run writes its
 one-row `bronze.s06_supplier_run_window`, refreshes the pipeline and checks parity.
 The pipeline configuration is immutable during runs.
 
-Until P6 is merged, `logic.change_sql` supplies unit-local CTEs named
-`purchasing_suppliers_history`, `purchasing_supplier_categories_history`,
-and `application_people_history`, matching draft PR #25's history names.
-They union P4's base/archive snapshots and expose `valid_from` / `valid_to`
-from **ValidFrom_str / ValidTo_str**, never the microsecond TIMESTAMP_NTZ columns.
-Their AS-OF predicate is `valid_from <= t AND t < valid_to`.
-Replace those CTEs with P6's silver history views when available; do not use
-its distinct timestamp change-event helper because S06 preserves event ties.
+`logic.change_sql` reads P6's silver `purchasing_suppliers_history`,
+`purchasing_supplier_categories_history`, and `application_people_history` views.
+Their `valid_from` / `valid_to` strings derive from P4's exact seven-digit
+**ValidFrom_str / ValidTo_str**, never the microsecond TIMESTAMP_NTZ columns.
+Point-in-time joins use the P6 half-open predicate `valid_from <= t AND t < valid_to`.
+P6's `temporal_change_events` supplies windowed source/instant pairs; joining
+them back to each driving history restores source-row multiplicity before the
+legacy change walk. People is never selected as a driver, and supplier/category
+events at the same instant remain separate.
 
 ## Strict silver parity
 
