@@ -11,7 +11,6 @@ resources:
             path: ../src/sql/units/wwi_payment_method_to_silver/pipeline.py
       configuration:
         payment_method.catalog: ${var.catalog}
-        payment_method.bronze_schema: ${var.bronze_schema}
         payment_method.silver_schema: ${var.silver_schema}
       permissions:
         - group_name: users

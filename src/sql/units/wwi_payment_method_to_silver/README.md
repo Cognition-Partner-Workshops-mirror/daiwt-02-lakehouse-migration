@@ -15,10 +15,10 @@ D1 and D2 compare to new/changed golden dimension rows, and both are empty.
 The job runs this multiset parity check after each successful pipeline update.
 
 Platform `bronze_landing_replay` owns and replays all bronze inputs before S04.
-The pipeline reads its typed `application_payment_methods` and
-`application_payment_methods_archive` snapshots, using `ValidFrom_str` and
-`ValidTo_str` for exact timestamps. The pipeline's history CTE remains the
-temporary P6 adapter. S04 owns only its two Silver outputs and the unit-only
+Platform `silver_temporal_views` publishes `application_payment_methods_history`
+and `application_payment_methods_asof(t)`, which S04 uses for change detection
+and reconstruction with exact seven-digit timestamp strings. S04 owns only its
+two Silver outputs and the unit-only
 `silver.payment_method_window` helper, which carries the runner's job parameters
 into the pipeline. For D0 that helper explicitly selects the full-history window
 described above rather than the manifest's equal baseline cutoffs.
