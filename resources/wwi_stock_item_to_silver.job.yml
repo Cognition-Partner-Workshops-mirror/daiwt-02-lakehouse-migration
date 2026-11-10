@@ -7,11 +7,11 @@ resources:
       serverless: true
       libraries:
         - file:
-            path: ../src/stock_item/pipeline.py
+            path: ../src/sql/units/wwi_stock_item_to_silver/pipeline.py
       configuration:
         s05.catalog: ${var.catalog}
         s05.silver_schema: ${var.silver_schema}
-        s05.source_path: ${workspace.file_path}/src/stock_item
+        s05.source_path: ${workspace.file_path}/src/sql/units/wwi_stock_item_to_silver
   jobs:
     wwi_stock_item_to_silver:
       name: ${var.job_name_prefix}wwi_stock_item_to_silver
@@ -31,7 +31,7 @@ resources:
           sql_task:
             warehouse_id: ${var.warehouse_id}
             file:
-              path: ../src/stock_item/window.sql
+              path: ../src/sql/units/wwi_stock_item_to_silver/window.sql
             parameters:
               catalog: ${var.catalog}
               silver_schema: ${var.silver_schema}
@@ -50,7 +50,7 @@ resources:
           sql_task:
             warehouse_id: ${var.warehouse_id}
             file:
-              path: ../src/stock_item/parity.sql
+              path: ../src/sql/units/wwi_stock_item_to_silver/parity.sql
             parameters:
               catalog: ${var.catalog}
               silver_schema: ${var.silver_schema}

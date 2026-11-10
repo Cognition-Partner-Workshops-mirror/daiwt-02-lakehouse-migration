@@ -10,7 +10,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from stock_item.model import COLUMNS, RULES, SOURCES, TYPES, changes_sql, datetime7, window
+from sql.units.wwi_stock_item_to_silver.model import COLUMNS, RULES, SOURCES, TYPES, changes_sql, datetime7, window
+from classify_changes import classify
 from drops import drop_params
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,12 +22,12 @@ def test_pipeline_loads_without_file_global(monkeypatch):
     decorator = lambda *args, **kwargs: lambda function: function
     monkeypatch.setitem(sys.modules, "pyspark", SimpleNamespace(
         pipelines=SimpleNamespace(materialized_view=decorator, expect_all=decorator)))
-    source_path = str(ROOT / "src/stock_item")
+    source_path = str(ROOT / "src/sql/units/wwi_stock_item_to_silver")
     config = {"s05.source_path": source_path, "s05.catalog": "daiwt_02_mig_dev",
               "s05.silver_schema": "silver_pr_16"}
     monkeypatch.setattr(sys, "path", list(sys.path))
     namespace = {"spark": SimpleNamespace(conf=SimpleNamespace(get=config.__getitem__))}
-    exec(compile((ROOT / "src/stock_item/pipeline.py").read_text(), "<pipeline>", "exec"), namespace)
+    exec(compile((ROOT / "src/sql/units/wwi_stock_item_to_silver/pipeline.py").read_text(), "<pipeline>", "exec"), namespace)
     assert namespace["silver"] == "`daiwt_02_mig_dev`.`silver_pr_16`"
     assert callable(namespace["stock_item_changes"])
     assert callable(namespace["stock_item_changes_quarantine"])
@@ -62,7 +63,7 @@ def test_windows(drop, expected):
     params = drop_params(json.loads((GOLDEN / "manifest.json").read_text()), drop)
     assert ("1900-01-01 00:00:00.0000000" if drop == "D0" else params["last_cutoff"],
             params["new_cutoff"]) == expected
-    sql = (ROOT / "src/stock_item/window.sql").read_text()
+    sql = (ROOT / "src/sql/units/wwi_stock_item_to_silver/window.sql").read_text()
     assert "CASE WHEN :drop = 'D0' THEN '1900-01-01 00:00:00.0000000' ELSE :last_cutoff END" in sql
     assert ":new_cutoff AS new_cutoff" in sql
 
@@ -91,7 +92,7 @@ def test_registry_and_job():
         "silver.stock_item_window", "silver.stock_item_changes",
         "silver.stock_item_changes_quarantine",
     }
-    resource = yaml.safe_load((ROOT / "resources/stock_item.yml").read_text())
+    resource = yaml.safe_load((ROOT / "resources/wwi_stock_item_to_silver.job.yml").read_text())
     job = resource["resources"]["jobs"][entry["job"]]
     tasks = job["tasks"]
     assert [t["task_key"] for t in tasks] == ["extraction_window", "refresh", "parity"]
@@ -101,6 +102,17 @@ def test_registry_and_job():
     assert not (ROOT / "src/stock_item/bronze_load.py").exists()
     for prior, task in zip(tasks, tasks[1:]):
         assert task["depends_on"] == [{"task_key": prior["task_key"]}]
+
+
+def test_classifier_selects_s05_and_prerequisites():
+    registry = json.loads((ROOT / "src/sql/units/registry.json").read_text())
+    base_registry = {unit: spec for unit, spec in registry.items() if unit != "wwi_stock_item_to_silver"}
+    paths = ["src/sql/units/registry.json", "resources/wwi_stock_item_to_silver.job.yml",
+             *(f"src/sql/units/wwi_stock_item_to_silver/{name}"
+               for name in ("model.py", "pipeline.py", "parity.sql", "window.sql")),
+             "tests/test_stock_item.py"]
+    assert classify(registry, paths, base_registry) == [
+        "bronze_landing_replay", "silver_temporal_views", "wwi_stock_item_to_silver"]
 
 
 def connection():
@@ -175,7 +187,7 @@ def test_golden_reconstruction_and_empty_incremental():
         assert len(actual) == len(expected) == count
         actual_rows = list(map(normalized, actual))
         expected_rows = list(map(normalized, expected))
-        parity_sql = (ROOT / "src/stock_item/parity.sql").read_text()
+        parity_sql = (ROOT / "src/sql/units/wwi_stock_item_to_silver/parity.sql").read_text()
         exclusions = re.search(r"THEN array\(([^)]*)\)", parity_sql).group(1)
         d0_excluded_columns = re.findall(r"'([^']+)'", exclusions)
         assert d0_excluded_columns == ["tax_rate"]
