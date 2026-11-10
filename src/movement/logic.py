@@ -3,13 +3,6 @@ from collections import Counter
 from datetime import datetime
 from decimal import Decimal
 
-SOURCE_TYPES = {
-    "StockItemTransactionID": "INT", "StockItemID": "INT",
-    "TransactionTypeID": "INT", "CustomerID": "INT", "InvoiceID": "INT",
-    "SupplierID": "INT", "PurchaseOrderID": "INT",
-    "TransactionOccurredWhen": "TIMESTAMP_NTZ", "Quantity": "DECIMAL(18,3)",
-    "LastEditedBy": "INT", "LastEditedWhen": "TIMESTAMP_NTZ",
-}
 PROJECTION = {
     "date_key": "CAST(TransactionOccurredWhen AS DATE)",
     "wwi_stock_item_transaction_id": "StockItemTransactionID",
@@ -33,19 +26,6 @@ def in_window(edited, drop, last, new):
 
 def parse_timestamp(value):
     return datetime.fromisoformat(value[:26])
-
-
-def replay(state, upserts, deletes=(), full=False):
-    result = {} if full else dict(state)
-    for row in deletes:
-        result.pop(row["StockItemTransactionID"], None)
-    for row in upserts:
-        result[row["StockItemTransactionID"]] = row
-    return result
-
-
-def has_deleted_file(path, entries):
-    return path.rsplit("/", 1)[-1] in {entry.name for entry in entries}
 
 
 def project(row):

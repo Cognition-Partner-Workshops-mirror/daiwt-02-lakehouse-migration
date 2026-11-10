@@ -2,11 +2,12 @@ import csv
 import json
 from datetime import datetime
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 
-from src.movement.logic import EXPECTED, PROJECTION, SHARED, assert_parity, in_window, project, parse_timestamp, replay, has_deleted_file
+from src.movement.logic import EXPECTED, PROJECTION, SHARED, assert_parity, in_window, project, parse_timestamp
+
+from src.bronze.bronze_landing_replay import reference_replay
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -56,39 +57,27 @@ def test_parity_empty_and_errors():
             assert_parity(actual, expected, expected_count=count, quarantine=quarantine)
 
 
-def test_replay_deletes_upserts_and_empty():
-    row = {"StockItemTransactionID": "1", "Quantity": "2"}
-    state = replay({}, [row], full=True)
-    assert replay(state, []) == state
-    assert replay(state, [], [{"StockItemTransactionID": "1"}]) == {}
-    replacement = dict(row, Quantity="3")
-    assert replay(state, [replacement], [row]) == {"1": replacement}
-    assert replay(state, [], full=True) == {}
-
-
-def test_deleted_file_dbfs_listing():
-    path = "/Volumes/catalog/landing/golden/inputs/D1/table.deleted.csv"
-    entry = SimpleNamespace(name="table.deleted.csv", path="dbfs:" + path)
-    assert has_deleted_file(path, [entry])
-    assert not has_deleted_file(path, [])
-    assert not has_deleted_file(path, [SimpleNamespace(name="table.csv")])
-
-
 def test_golden_replay_all_drops():
-    state, previous = {}, []
+    state, previous = [], []
+    table = next(t for t in json.loads((ROOT / "src/bronze/tables.json").read_text())["tables"]
+                 if t["source_table"] == "Warehouse.StockItemTransactions")
+    columns = [c["name"] for c in table["columns"]]
     manifest = json.loads((ROOT / "golden/manifest.json").read_text())
     for spec in manifest["drops"]:
         drop = spec["name"]
         path = ROOT / f"golden/inputs/{drop}/WideWorldImporters.Warehouse.StockItemTransactions.csv"
         deleted = path.with_suffix(".deleted.csv")
-        state = replay(state, rows(path), rows(deleted) if deleted.exists() else (), full=drop == "D0")
+        upserts = [list(row.values()) for row in rows(path)]
+        deletes = [[row["StockItemTransactionID"]] for row in rows(deleted)] if deleted.exists() else []
+        state = reference_replay(table, [] if drop == "D0" else state, upserts, deletes)
         last = next(x["Cutoff Time"] for x in spec["last_cutoff"] if x["Table Name"] == "Movement")
         new = spec["new_cutoff"]
         if isinstance(new, list):
             new = next(x["Cutoff Time"] for x in new if x["Table Name"] == "Movement")
         last, new = parse_timestamp(last), parse_timestamp(new)
         staged = []
-        for row in state.values():
+        for values in state:
+            row = dict(zip(columns, values))
             if in_window(parse_timestamp(row["LastEditedWhen"]), drop, last, new):
                 value = project(row)
                 assert all(value[c] is not None for c in (

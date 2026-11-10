@@ -21,29 +21,21 @@ resources:
           level: CAN_VIEW
       parameters:
         - name: drop
-          default: D0
+          default: ${var.drop}
         - name: last_cutoff
-          default: '2016-06-06 12:31:17.0000000'
+          default: ${var.last_cutoff}
         - name: new_cutoff
-          default: '2016-06-06 12:31:17.0000000'
+          default: ${var.new_cutoff}
       tasks:
-        - task_key: bronze_ingest
+        - task_key: window
           notebook_task:
             notebook_path: ../src/movement/tasks.py
             base_parameters: &movement_parameters
-              mode: ingest
+              mode: window
               catalog: ${var.catalog}
               bronze_schema: ${var.bronze_schema}
               silver_schema: ${var.silver_schema}
               golden_path: ${var.golden_path}
-        - task_key: window
-          depends_on:
-            - task_key: bronze_ingest
-          notebook_task:
-            notebook_path: ../src/movement/tasks.py
-            base_parameters:
-              <<: *movement_parameters
-              mode: window
         - task_key: pipeline_update
           depends_on:
             - task_key: window

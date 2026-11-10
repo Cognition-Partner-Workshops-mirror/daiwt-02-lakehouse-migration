@@ -8,7 +8,8 @@ silver = spark.conf.get("movement.silver_schema")
 
 
 def candidates():
-    source = spark.read.table(f"{catalog}.{bronze}.warehouse_stock_item_transactions")
+    source = spark.read.table(f"{catalog}.{bronze}.warehouse_stock_item_transactions").withColumn(
+        "_bad_cast", F.col("Quantity").isNotNull() & F.expr("try_cast(Quantity AS INT)").isNull())
     window = spark.read.table(f"{catalog}.{silver}.movement_window")
     return source.drop("_drop").crossJoin(window).where(
         "(LastEditedWhen <= new_cutoff AND (_drop = 'D0' OR LastEditedWhen > last_cutoff)) "
