@@ -75,14 +75,17 @@ def test_golden_all_drops():
         assert not [r for r in rows if any(v == '\\N' for v in r)]
 
 
-@pytest.mark.parametrize('drop', ['D0', 'D1', 'D2'])
-def test_resource_cutoffs(drop):
+def test_runner_contract():
     import yaml
     resource = yaml.safe_load((ROOT / 'resources/s06_supplier.yml').read_text())
-    tasks = resource['resources']['jobs']['s06_supplier_job']['tasks']
-    parameters = next(t['notebook_task']['base_parameters'] for t in tasks if t['task_key'] == f'bronze_{drop}')
-    manifest = json.loads((ROOT / 'golden/manifest.json').read_text())
-    assert (parameters['last_cutoff'], parameters['new_cutoff']) == logic.cutoffs(manifest, drop)
+    job = resource['resources']['jobs']['s06_supplier_job']
+    assert {p['name'] for p in job['parameters']} == {'drop', 'last_cutoff', 'new_cutoff'}
+    tasks = job['tasks']
+    assert [t['task_key'] for t in tasks] == ['run_window', 'silver', 'parity']
+    registry = json.loads((ROOT / 'src/sql/units/registry.json').read_text())['s06_supplier']
+    assert registry['depends_on'] == ['bronze_landing_replay']
+    assert registry['outputs'] == []
+    assert not any('raw' in table for table in registry['owns'])
 
 
 @pytest.mark.parametrize('rows,quarantine,fail', [([], 0, False),
@@ -121,7 +124,7 @@ def test_expected_multiset_changes(tmp_path):
 
 
 @pytest.mark.parametrize('drop', ['D0', 'D2'])
-def test_bronze_notebook(monkeypatch, drop):
+def test_run_window_notebook(monkeypatch, drop):
     monkeypatch.setitem(sys.modules, 'logic', logic)
     saved = {}
     class Frame:
@@ -136,11 +139,9 @@ def test_bronze_notebook(monkeypatch, drop):
     parameters = dict(catalog='test', bronze_schema='bronze', golden_path=str(ROOT / 'golden'),
                       drop=drop, last_cutoff='last', new_cutoff='new')
     widgets = SimpleNamespace(text=lambda *args: None, get=parameters.__getitem__)
-    runpy.run_path(str(ROOT / 'src/sql/units/s06_supplier/bronze.py'), init_globals={
+    runpy.run_path(str(ROOT / 'src/sql/units/s06_supplier/run_window.py'), init_globals={
         'spark': SimpleNamespace(createDataFrame=Frame), 'dbutils': SimpleNamespace(widgets=widgets)})
-    assert len(saved) == 13
-    assert len(saved['test.bronze.purchasing_suppliers']) == 13
-    assert len(saved['test.bronze.purchasing_suppliers_archive']) == 13
+    assert len(saved) == 1
     assert saved['test.bronze.s06_supplier_run_window'] == [(drop, 'last', 'new')]
 
 
@@ -155,6 +156,8 @@ def test_spark_query_matches_walk():
         categories = [dict(c, ValidTo=t), dict(c, ValidFrom=t)]
         for table, rows in [('purchasing_suppliers', suppliers),
                             ('purchasing_supplier_categories', categories), ('application_people', [p])]:
+            rows = [dict(r, ValidFrom_str=r['ValidFrom'], ValidTo_str=r['ValidTo'],
+                         ValidFrom='1900-01-01', ValidTo='1900-01-02') for r in rows]
             schema = ','.join(f'{name} STRING' for name in rows[0])
             spark.createDataFrame([tuple(r.values()) for r in rows], schema).createOrReplaceTempView(table)
             spark.createDataFrame([], schema).createOrReplaceTempView(table + '_archive')

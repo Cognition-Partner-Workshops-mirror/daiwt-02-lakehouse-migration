@@ -84,28 +84,32 @@ def change_sql(bronze, last=None, new=None, window_table=None):
     lower = f'(SELECT last_cutoff FROM {window_table})' if window_table else f"'{last}'"
     upper = f'(SELECT new_cutoff FROM {window_table})' if window_table else f"'{new}'"
     def history(table):
-        return f'SELECT * FROM {bronze}.{table} UNION ALL SELECT * FROM {bronze}.{table}_archive'
+        return (f"SELECT *, ValidFrom_str valid_from, ValidTo_str valid_to, 'current' _version_source FROM {bronze}.{table} "
+                f"UNION ALL SELECT *, ValidFrom_str valid_from, ValidTo_str valid_to, 'archive' _version_source FROM {bronze}.{table}_archive")
     return f"""
-WITH s AS ({history('purchasing_suppliers')}),
-c AS ({history('purchasing_supplier_categories')}),
-p AS ({history('application_people')}),
+WITH purchasing_suppliers_history AS ({history('purchasing_suppliers')}),
+purchasing_supplier_categories_history AS ({history('purchasing_supplier_categories')}),
+application_people_history AS ({history('application_people')}),
+s AS (SELECT * FROM purchasing_suppliers_history),
+c AS (SELECT * FROM purchasing_supplier_categories_history),
+p AS (SELECT * FROM application_people_history),
 events AS (
- SELECT 's' kind, SupplierID id, ValidFrom t FROM s
- WHERE ValidFrom > {lower} AND ValidFrom <= {upper}
+ SELECT 's' kind, SupplierID id, valid_from t FROM s
+ WHERE valid_from > {lower} AND valid_from <= {upper}
  UNION ALL
- SELECT 'c', SupplierCategoryID, ValidFrom FROM c
- WHERE ValidFrom > {lower} AND ValidFrom <= {upper}
- AND ValidFrom <> '2020-01-01 00:00:00.0000000'
+ SELECT 'c', SupplierCategoryID, valid_from FROM c
+ WHERE valid_from > {lower} AND valid_from <= {upper}
+ AND valid_from <> '2020-01-01 00:00:00.0000000'
 ), staged AS (
  SELECT s.SupplierID wwi_supplier_id, s.SupplierName supplier,
  c.SupplierCategoryName category, p.FullName primary_contact,
  s.SupplierReference supplier_reference, s.PaymentDays payment_days,
- s.DeliveryPostalCode postal_code, s.ValidFrom valid_from
- FROM events e JOIN s ON s.ValidFrom <= e.t AND e.t < s.ValidTo
+ s.DeliveryPostalCode postal_code, s.valid_from valid_from
+ FROM events e JOIN s ON s.valid_from <= e.t AND e.t < s.valid_to
  AND ((e.kind = 's' AND s.SupplierID = e.id) OR
       (e.kind = 'c' AND s.SupplierCategoryID = e.id))
- JOIN c ON c.SupplierCategoryID = s.SupplierCategoryID AND c.ValidFrom <= e.t AND e.t < c.ValidTo
- JOIN p ON p.PersonID = s.PrimaryContactPersonID AND p.ValidFrom <= e.t AND e.t < p.ValidTo
+ JOIN c ON c.SupplierCategoryID = s.SupplierCategoryID AND c.valid_from <= e.t AND e.t < c.valid_to
+ JOIN p ON p.PersonID = s.PrimaryContactPersonID AND p.valid_from <= e.t AND e.t < p.valid_to
 ), ends AS (
  SELECT a.wwi_supplier_id, a.valid_from, min(b.valid_from) valid_to
  FROM staged a LEFT JOIN staged b ON a.wwi_supplier_id = b.wwi_supplier_id
