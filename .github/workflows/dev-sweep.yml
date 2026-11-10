@@ -1,6 +1,11 @@
 name: dev-sweep
 on:
   workflow_dispatch:
+    inputs:
+      suffix:
+        description: Optional single PR suffix (pr_<n>)
+        required: false
+        type: string
 permissions:
   contents: read
   pull-requests: read
@@ -23,6 +28,8 @@ jobs:
           python-version: "3.11"
       - run: pip install -r requirements-dev.txt
       - uses: databricks/setup-cli@main
-      - run: bash ci/sweep_dev.sh
+      - run: |
+          if [ -n "$SUFFIX" ]; then bash ci/sweep_dev.sh --suffix "$SUFFIX"; else bash ci/sweep_dev.sh; fi
         env:
+          SUFFIX: ${{ inputs.suffix }}
           GH_TOKEN: ${{ github.token }}

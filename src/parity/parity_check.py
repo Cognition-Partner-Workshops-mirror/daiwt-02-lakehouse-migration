@@ -142,9 +142,14 @@ class Warehouse:
         self.client = client
         self.warehouse_id = warehouse_id
 
-    def sql(self, statement):
+    def sql(self, statement, parameters=None):
+        options = {}
+        if parameters is not None:
+            from databricks.sdk.service.sql import StatementParameterListItem
+            options["parameters"] = [StatementParameterListItem(name=k, value=v, type="STRING")
+                                     for k, v in parameters.items()]
         response = self.client.statement_execution.execute_statement(
-            warehouse_id=self.warehouse_id, statement=statement, wait_timeout="50s")
+            warehouse_id=self.warehouse_id, statement=statement, wait_timeout="50s", **options)
         while response.status.state.value in ("PENDING", "RUNNING"):
             time.sleep(1)
             response = self.client.statement_execution.get_statement(response.statement_id)
