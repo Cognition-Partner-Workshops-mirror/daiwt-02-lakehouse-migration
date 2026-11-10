@@ -43,7 +43,7 @@ def main():
     args = parser.parse_args()
     try:
         registry = json.loads(subprocess.check_output(["git", "show", f"{args.head_sha}:src/sql/units/registry.json"], text=True))
-        paths = subprocess.check_output(["git", "diff", "--name-only", args.base_sha, args.head_sha], text=True).splitlines()
+        paths = subprocess.check_output(["git", "diff", "--name-only", f"{args.base_sha}...{args.head_sha}"], text=True).splitlines()
         warehouse = Warehouse(WorkspaceClient(), "6dc4b80538621b7b")
         data = warehouse.sql(f"SELECT {', '.join(COLUMNS)} FROM {table_name(args.table)} WHERE head_sha = :head AND suffix = :suffix ORDER BY recorded_at DESC",
                              {"head": args.head_sha, "suffix": args.suffix})
