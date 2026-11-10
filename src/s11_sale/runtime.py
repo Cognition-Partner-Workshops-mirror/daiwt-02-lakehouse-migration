@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 
 from s11_sale.sale import (COLUMNS, ID_DIMENSIONS, SHARED, SOURCES, assert_parity,
-                           drop_window, namespace, quote, source_type)
+                           drop_window, quote, source_type, target_namespace)
 
 
 def read_csv(spark, root, relative, columns):
@@ -31,9 +31,7 @@ def typed_projection(columns):
 def ingest(spark, catalog, schema, root, drop, last="", new=""):
     from pyspark.sql import functions as F
 
-    bronze = namespace(catalog, schema)
-    if catalog.endswith("_prod"):
-        raise ValueError("S11 stand-in ingest is dev-only")
+    bronze = target_namespace(catalog, schema, "bronze")
     manifest = manifest_at(root)
     last, new = drop_window(manifest, drop, last, new)
     context = f"{bronze}.sale_run_context"
@@ -122,7 +120,8 @@ def parity_frames(spark, root, manifest, drop, actual):
 def check(spark, catalog, bronze_schema, silver_schema, root, drop, last="", new=""):
     manifest = manifest_at(root)
     last, new = drop_window(manifest, drop, last, new)
-    bronze, silver = namespace(catalog, bronze_schema), namespace(catalog, silver_schema)
+    bronze = target_namespace(catalog, bronze_schema, "bronze")
+    silver = target_namespace(catalog, silver_schema, "silver")
     context = spark.table(f"{bronze}.sale_run_context").collect()
     if len(context) != 1 or (context[0]["drop"], context[0]["last_cutoff"], context[0]["new_cutoff"]) != (drop, last, new):
         raise ValueError("Pipeline context does not match parity window")
@@ -138,7 +137,5 @@ def check(spark, catalog, bronze_schema, silver_schema, root, drop, last="", new
     print(json.dumps(result, sort_keys=True), flush=True)
     if result["status"] != "PASS":
         raise AssertionError(json.dumps(result))
-    if catalog.endswith("_prod"):
-        raise ValueError("S11 stand-in parity is dev-only")
     spark.sql(f"UPDATE {bronze}.sale_run_context SET status = 'COMPLETE'")
     return result

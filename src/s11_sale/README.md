@@ -88,5 +88,7 @@ self-contained, and platform registry entries do not exist yet. When P4 lands,
 replace only bronze ingest/ownership and add its registered dependency. P7 cleanup
 currently ignores `owns` (platform-owned follow-up); dev bundle destruction still
 removes schemas, while production cleanup must not be used to infer S11 ownership.
-The stand-in runtime refuses production writes. S11 registers `outputs: []` so
+The runtime accepts only matching dev suffixed schemas or prod bronze/silver
+schemas; identity and Unity Catalog grants enforce production write access.
+S11 registers `outputs: []` so
 the existing global parity harness continues to SKIP G12's `gold.fact_sale`.

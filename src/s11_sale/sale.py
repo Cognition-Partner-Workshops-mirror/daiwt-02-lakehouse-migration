@@ -51,6 +51,15 @@ def namespace(catalog, schema):
     return f"{quote(catalog)}.{quote(schema)}"
 
 
+def target_namespace(catalog, schema, layer):
+    if layer not in ("bronze", "silver") or not (
+        (catalog == "daiwt_02_mig_prod" and schema == layer)
+        or (catalog == "daiwt_02_mig_dev" and re.fullmatch(layer + r"_[A-Za-z_0-9]+", schema))
+    ):
+        raise ValueError("Mismatched target catalog/schema")
+    return namespace(catalog, schema)
+
+
 def source_type(column):
     if column in INT_COLUMNS:
         return "INT"

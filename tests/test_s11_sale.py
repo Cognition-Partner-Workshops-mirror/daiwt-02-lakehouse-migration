@@ -7,7 +7,7 @@ import yaml
 
 from parity.parity_check import compare
 from s11_sale.sale import (COLUMNS, SOURCES, assert_parity, cutoff, drop_window,
-                           namespace, sale_query, source_type)
+                           namespace, sale_query, source_type, target_namespace)
 from s11_sale.runtime import typed_projection
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -52,6 +52,26 @@ def test_source_types_and_safe_names():
     with pytest.raises(ValueError):
         namespace("catalog;DROP TABLE x", "bronze")
     assert "unhex(`Photo`) AS `Photo`" in typed_projection(["Photo"])
+
+
+@pytest.mark.parametrize("catalog,schema,layer", [
+    ("daiwt_02_mig_dev", "bronze_pr_20", "bronze"),
+    ("daiwt_02_mig_prod", "bronze", "bronze"),
+    ("daiwt_02_mig_prod", "silver", "silver"),
+])
+def test_target_namespace_allows_bundle_targets(catalog, schema, layer):
+    assert target_namespace(catalog, schema, layer) == namespace(catalog, schema)
+
+
+@pytest.mark.parametrize("catalog,schema,layer", [
+    ("daiwt_02_mig_prod", "bronze_pr_20", "bronze"),
+    ("daiwt_02_mig_dev", "bronze", "bronze"),
+    ("daiwt_02_mig_prod", "silver", "bronze"),
+    ("other", "bronze_pr_20", "bronze"),
+])
+def test_target_namespace_rejects_mismatches(catalog, schema, layer):
+    with pytest.raises(ValueError, match="Mismatched"):
+        target_namespace(catalog, schema, layer)
 
 
 @pytest.mark.parametrize("counts,status", [
