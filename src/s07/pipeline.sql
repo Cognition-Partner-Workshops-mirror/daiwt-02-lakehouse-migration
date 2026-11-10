@@ -5,7 +5,7 @@ CREATE OR REFRESH MATERIALIZED VIEW transaction_type_changes (
   CONSTRAINT valid_interval EXPECT (valid_from < valid_to)
 ) AS
 WITH versions AS (
-  SELECT * FROM ${s07.catalog}.${s07.silver_schema}.s07_transaction_types_history
+  SELECT * FROM ${s07.catalog}.${s07.silver_schema}.application_transaction_types_history
 ), events AS (
   SELECT v.TransactionTypeID, v.valid_from
   FROM versions v CROSS JOIN ${s07.catalog}.${s07.silver_schema}.s07_run_window w

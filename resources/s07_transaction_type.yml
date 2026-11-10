@@ -35,7 +35,6 @@ resources:
             notebook_path: ../src/s07/prepare.py
             base_parameters:
               catalog: ${var.catalog}
-              bronze_schema: ${var.bronze_schema}
               silver_schema: ${var.silver_schema}
               golden_path: ${var.golden_path}
         - task_key: silver
