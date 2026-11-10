@@ -1,4 +1,10 @@
 {
+  "wwi_fact_transaction_to_gold": {
+    "job": "wwi_fact_transaction_to_gold",
+    "outputs": ["gold.fact_transaction"],
+    "owns": [],
+    "depends_on": ["p5_gold_seed", "wwi_transaction_to_silver", "wwi_dim_customer_to_gold", "wwi_dim_payment_method_to_gold", "wwi_dim_supplier_to_gold", "wwi_dim_transaction_type_to_gold"]
+  },
   "wwi_dim_customer_to_gold": {
     "job": "wwi_dim_customer_to_gold",
     "outputs": ["gold.dim_customer"],
