@@ -44,6 +44,10 @@ def replay(state, upserts, deletes=(), full=False):
     return result
 
 
+def has_deleted_file(path, entries):
+    return path.rsplit("/", 1)[-1] in {entry.name for entry in entries}
+
+
 def project(row):
     """Local equivalent of the typed projection; invalid casts raise."""
     def integer(name):

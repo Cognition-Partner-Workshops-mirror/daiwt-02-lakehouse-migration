@@ -3,7 +3,7 @@ import re
 from functools import reduce
 
 from pyspark.sql import functions as F
-from logic import SOURCE_TYPES, SHARED, EXPECTED
+from logic import SOURCE_TYPES, SHARED, EXPECTED, has_deleted_file
 
 catalog = dbutils.widgets.get("catalog")
 bronze = dbutils.widgets.get("bronze_schema")
@@ -46,8 +46,7 @@ def ingest():
         typed.write.mode("overwrite").option("overwriteSchema", True).saveAsTable(table)
     else:
         deleted = path.removesuffix(".csv") + ".deleted.csv"
-        files = {f.path.rstrip("/") for f in dbutils.fs.ls(f"{root}/inputs/{drop}")}
-        if deleted in files:
+        if has_deleted_file(deleted, dbutils.fs.ls(f"{root}/inputs/{drop}")):
             removed = csv(deleted)
             deleted_raw = removed
             for c in SOURCE_TYPES:

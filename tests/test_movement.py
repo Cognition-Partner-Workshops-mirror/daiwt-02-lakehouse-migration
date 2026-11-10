@@ -2,10 +2,11 @@ import csv
 import json
 from datetime import datetime
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
-from src.movement.logic import EXPECTED, PROJECTION, SHARED, assert_parity, in_window, project, parse_timestamp, replay
+from src.movement.logic import EXPECTED, PROJECTION, SHARED, assert_parity, in_window, project, parse_timestamp, replay, has_deleted_file
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -63,6 +64,14 @@ def test_replay_deletes_upserts_and_empty():
     replacement = dict(row, Quantity="3")
     assert replay(state, [replacement], [row]) == {"1": replacement}
     assert replay(state, [], full=True) == {}
+
+
+def test_deleted_file_dbfs_listing():
+    path = "/Volumes/catalog/landing/golden/inputs/D1/table.deleted.csv"
+    entry = SimpleNamespace(name="table.deleted.csv", path="dbfs:" + path)
+    assert has_deleted_file(path, [entry])
+    assert not has_deleted_file(path, [])
+    assert not has_deleted_file(path, [SimpleNamespace(name="table.csv")])
 
 
 def test_golden_replay_all_drops():
