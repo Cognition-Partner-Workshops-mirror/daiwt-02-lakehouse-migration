@@ -1,0 +1,43 @@
+resources:
+  jobs:
+    wwi_city_to_silver:
+      name: ${var.job_name_prefix}wwi_city_to_silver
+      max_concurrent_runs: 1
+      parameters:
+        - name: drop
+          default: ${var.drop}
+        - name: last_cutoff
+          default: ${var.last_cutoff}
+        - name: new_cutoff
+          default: ${var.new_cutoff}
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+      tasks:
+        - task_key: silver_pipeline
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.wwi_city_to_silver_pipeline.id}
+            full_refresh: true
+        - task_key: silver_parity
+          depends_on:
+            - task_key: silver_pipeline
+          environment_key: default
+          max_retries: 0
+          spark_python_task:
+            python_file: ../src/sql/units/wwi_city_to_silver/parity.py
+            parameters:
+              - --catalog
+              - ${var.catalog}
+              - --bronze-schema
+              - ${var.bronze_schema}
+              - --silver-schema
+              - ${var.silver_schema}
+              - --golden-path
+              - ${var.golden_path}
+              - --drop
+              - "{{job.parameters.drop}}"
+              - --last-cutoff
+              - "{{job.parameters.last_cutoff}}"
+              - --new-cutoff
+              - "{{job.parameters.new_cutoff}}"
