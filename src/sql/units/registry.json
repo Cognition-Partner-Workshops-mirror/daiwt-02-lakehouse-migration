@@ -1,4 +1,16 @@
 {
+  "wwi_dim_city_to_gold": {
+    "job": "wwi_dim_city_to_gold",
+    "outputs": ["gold.dim_city"],
+    "owns": [],
+    "depends_on": ["p5_gold_seed", "wwi_city_to_silver"]
+  },
+  "wwi_dim_stock_item_to_gold": {
+    "job": "wwi_dim_stock_item_to_gold",
+    "outputs": ["gold.dim_stock_item"],
+    "owns": [],
+    "depends_on": ["p5_gold_seed", "wwi_stock_item_to_silver"]
+  },
   "wwi_stock_item_to_silver": {
     "job": "wwi_stock_item_to_silver",
     "outputs": [],
@@ -144,6 +156,12 @@
     "depends_on": ["bronze_landing_replay"]
   },
   "wwi_purchase_to_silver": {"job": "wwi_purchase_to_silver", "outputs": [], "owns": ["silver.purchase_changes", "silver.purchase_staging", "silver.purchase_changes_quarantine", "silver.purchase_parity_results"], "depends_on": ["bronze_landing_replay"]},
+  "wwi_dim_payment_method_to_gold": {
+    "job": "wwi_dim_payment_method_to_gold",
+    "outputs": ["gold.dim_payment_method"],
+    "owns": [],
+    "depends_on": ["p5_gold_seed", "wwi_payment_method_to_silver"]
+  },
   "wwi_dim_date_to_gold": {
     "job": "wwi_dim_date_to_gold",
     "outputs": ["gold.dim_date"],
@@ -159,6 +177,12 @@
       "silver.order_changes_quarantine",
       "silver.order_changes_parity"
     ],
+    "depends_on": ["bronze_landing_replay"]
+  },
+  "wwi_sale_to_silver": {
+    "job": "wwi_sale_to_silver",
+    "outputs": [],
+    "owns": ["silver.sale_changes", "silver.sale_changes_quarantine"],
     "depends_on": ["bronze_landing_replay"]
   },
   "wwi_transaction_type_to_silver": {"job": "wwi_transaction_type_to_silver", "outputs": [], "owns": ["silver.s07_run_window", "silver.transaction_type_changes", "silver.transaction_type_changes_quarantine"], "depends_on": ["silver_temporal_views"]},
@@ -194,6 +218,7 @@
     "owns": [],
     "depends_on": ["p5_gold_seed", "wwi_transaction_type_to_silver"]
   },
+  "wwi_transaction_to_silver": {"job": "wwi_transaction_to_silver", "outputs": [], "owns": ["silver.transaction_changes", "silver.transaction_quarantine"], "depends_on": ["bronze_landing_replay"]},
   "wwi_employee_to_silver": {
     "job": "wwi_employee_to_silver",
     "outputs": [],

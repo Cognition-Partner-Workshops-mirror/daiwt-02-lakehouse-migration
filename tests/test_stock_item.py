@@ -112,7 +112,8 @@ def test_classifier_selects_s05_and_prerequisites():
                for name in ("model.py", "pipeline.py", "parity.sql", "window.sql")),
              "tests/test_stock_item.py"]
     assert classify(registry, paths, base_registry) == [
-        "bronze_landing_replay", "silver_temporal_views", "wwi_stock_item_to_silver"]
+        "bronze_landing_replay", "silver_temporal_views", "wwi_stock_item_to_silver",
+        "wwi_dim_stock_item_to_gold"]
 
 
 def connection():
