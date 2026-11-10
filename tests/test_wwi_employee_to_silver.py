@@ -197,7 +197,7 @@ def test_employee_p4_sql_contract():
 def test_employee_bundle_registry_and_harness(monkeypatch):
     bundle = yaml.safe_load((ROOT / "databricks.yml").read_text())
     assert bundle["include"] == ["resources/*.yml"]
-    resource = yaml.safe_load((ROOT / f"resources/{UNIT}.yml").read_text())["resources"]
+    resource = yaml.safe_load((ROOT / f"resources/{UNIT}.job.yml").read_text())["resources"]
     job = resource["jobs"][UNIT]
     assert job["name"] == "${var.job_name_prefix}" + UNIT
     assert {p["name"]: p["default"] for p in job["parameters"]} == {
