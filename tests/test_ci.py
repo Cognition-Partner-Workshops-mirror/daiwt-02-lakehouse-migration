@@ -173,6 +173,32 @@ def test_registry_and_bundle_targets():
         {"group_name": "users", "level": "CAN_VIEW"}]
 
 
+@pytest.mark.parametrize("target", ["dev", "prod"])
+def test_bundle_permissions_do_not_duplicate_target_principals(target):
+    bundle = yaml.safe_load((ROOT / "databricks.yml").read_text())
+    permissions = bundle["targets"][target]["permissions"]
+    assert {"group_name": "users", "level": "CAN_VIEW"} in permissions
+    principal_keys = ("group_name", "user_name", "service_principal_name")
+    principals = {(key, permission[key]) for permission in permissions
+                  for key in principal_keys if key in permission}
+
+    def check(resources, path):
+        for kind, entries in resources.items():
+            for name, resource in entries.items():
+                for permission in resource.get("permissions", []):
+                    assert permission.get("group_name") != "users", f"{path}: {kind}.{name} grants users"
+                    assert not principals.intersection(
+                        (key, permission[key]) for key in principal_keys if key in permission
+                    ), f"{path}: {kind}.{name} duplicates {target} permissions"
+
+    documents = [(ROOT / "databricks.yml", bundle)]
+    for pattern in bundle["include"]:
+        documents.extend((path, yaml.safe_load(path.read_text())) for path in ROOT.glob(pattern))
+    for path, document in documents:
+        check(document.get("resources", {}), path)
+        check(document.get("targets", {}).get(target, {}).get("resources", {}), path)
+
+
 def test_workflow_oidc_environments():
     for path in (ROOT / ".github/workflows").glob("*.yml"):
         workflow = yaml.safe_load(path.read_text())
