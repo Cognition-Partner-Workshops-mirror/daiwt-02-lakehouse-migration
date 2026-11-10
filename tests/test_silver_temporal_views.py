@@ -8,7 +8,7 @@ import yaml
 
 from bronze.bronze_landing_replay import parse_csv, reference_replay, deleted_path
 from classify_changes import classify
-from silver import temporal_views as temporal
+from sql.units.silver_temporal_views import temporal_views as temporal
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = json.loads((ROOT / "src/bronze/tables.json").read_text())
@@ -139,7 +139,7 @@ def test_registry_job_and_classification():
     assert entry["owns"] == temporal.owned_objects(SPEC)
     assert len(entry["owns"]) == 30
     assert entry["depends_on"] == ["bronze_landing_replay"] and entry["outputs"] == []
-    for path in ("src/silver/temporal_views.py", "resources/silver_temporal_views.job.yml"):
+    for path in ("src/sql/units/silver_temporal_views/temporal_views.py", "resources/silver_temporal_views.job.yml"):
         assert classify(registry, [path]) == ["silver_temporal_views"]
     assert classify(registry, ["resources/bronze_landing_replay.job.yml"]) == list(registry)
     job = yaml.safe_load((ROOT / "resources/silver_temporal_views.job.yml").read_text())["resources"]["jobs"][entry["job"]]
@@ -148,7 +148,7 @@ def test_registry_job_and_classification():
     task = job["tasks"][0]
     assert task["environment_key"] == job["environments"][0]["environment_key"]
     assert job["environments"][0]["spec"]["environment_version"] == "2"
-    assert task["spark_python_task"]["python_file"] == "../src/silver/temporal_views.py"
+    assert task["spark_python_task"]["python_file"] == "../src/sql/units/silver_temporal_views/temporal_views.py"
     params = task["spark_python_task"]["parameters"]
     for value in ("${var.catalog}", "${var.bronze_schema}", "${var.silver_schema}",
                   "${workspace.file_path}/src/bronze/tables.json"):

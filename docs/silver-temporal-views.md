@@ -5,6 +5,9 @@ drop D0 → D1 → D2. The job replaces views/functions idempotently and then
 fails on known-row, uniqueness or interval-overlap violations. It does not
 replay bronze itself. There are 14 temporal pairs in the checked-in spec
 (older wave-0 notes say 13).
+The Python task lives at
+`src/sql/units/silver_temporal_views/temporal_views.py`, so the existing unit
+directory classifier selects it without custom path mappings.
 
 Each `silver.<bronze_table>_history` exposes every typed bronze column
 (including exact timestamp string copies and ingestion metadata), plus

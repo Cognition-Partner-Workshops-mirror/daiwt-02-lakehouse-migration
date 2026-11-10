@@ -20,7 +20,7 @@ resources:
           max_retries: 0
           timeout_seconds: 3600
           spark_python_task:
-            python_file: ../src/silver/temporal_views.py
+            python_file: ../src/sql/units/silver_temporal_views/temporal_views.py
             parameters:
               - --catalog
               - ${var.catalog}

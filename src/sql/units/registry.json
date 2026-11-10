@@ -119,7 +119,6 @@
       "silver.warehouse_stock_items_asof",
       "silver.warehouse_stock_items_history"
     ],
-    "depends_on": ["bronze_landing_replay"],
-    "paths": ["src/silver/temporal_views.py"]
+    "depends_on": ["bronze_landing_replay"]
   }
 }

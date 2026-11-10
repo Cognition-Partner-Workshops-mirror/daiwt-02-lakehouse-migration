@@ -23,8 +23,7 @@ def classify(registry, paths):
     for path in paths:
         if path.startswith(("tests/", "README", "docs/", ".github/")):
             continue
-        matches = {unit for unit in registry if path in registry[unit].get("paths", [])
-                   or path in (f"src/sql/units/{unit}.sql", f"resources/{unit}.job.yml")
+        matches = {unit for unit in registry if path in (f"src/sql/units/{unit}.sql", f"resources/{unit}.job.yml")
                    or path.startswith(f"src/sql/units/{unit}/")}
         if not matches or path == "src/sql/units/registry.json":
             return topo_order(registry, registry)
