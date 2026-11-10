@@ -32,7 +32,7 @@ def sale_changes_quarantine():
                 .select(*[c for c, _ in COLUMNS])
                 .withColumn("_reason", F.lit("sale source key, FK or cast failure")))
     for table, key in SOURCES.values():
-        invalid = spark.read.table(f"{bronze}.{table}").where(f"NOT _cast_valid OR {quote(key)} IS NULL")
+        invalid = spark.read.table(f"{bronze}.{table}").where(f"{quote(key)} IS NULL")
         invalid = invalid.selectExpr(*[f"CAST(NULL AS {typ}) AS {quote(c)}" for c, typ in COLUMNS])
         failures = failures.unionByName(invalid.withColumn("_reason", F.lit(f"invalid source: {table}")))
     return failures

@@ -2,8 +2,8 @@
 import json
 from pathlib import Path
 
-from s11_sale.sale import (COLUMNS, ID_DIMENSIONS, SHARED, SOURCES, assert_parity,
-                           drop_window, quote, source_type, target_namespace)
+from s11_sale.sale import (COLUMNS, ID_DIMENSIONS, SHARED, assert_parity,
+                           drop_window, quote, target_namespace)
 
 
 def read_csv(spark, root, relative, columns):
@@ -19,67 +19,19 @@ def manifest_at(root):
     return json.loads(Path(root, "manifest.json").read_text())
 
 
-def typed_projection(columns):
-    converted = {c: (f"unhex({quote(c)})" if source_type(c) == "BINARY" else
-                     f"try_cast({quote(c)} AS {source_type(c)})") for c in columns}
-    checks = [f"({quote(c)} IS NULL OR {expr} IS NOT NULL)"
-              for c, expr in converted.items()]
-    return [f"{expr} AS {quote(c)}" for c, expr in converted.items()] + [
-        " AND ".join(checks) + " AS _cast_valid", "_drop", "_file", "_ingested_at"]
-
-
-def ingest(spark, catalog, schema, root, drop, last="", new=""):
-    from pyspark.sql import functions as F
-
-    bronze = target_namespace(catalog, schema, "bronze")
-    manifest = manifest_at(root)
-    last, new = drop_window(manifest, drop, last, new)
-    context = f"{bronze}.sale_run_context"
-    if drop != "D0":
-        previous = spark.table(context).collect()
-        predecessor = f"D{int(drop[1:]) - 1}"
-        if len(previous) != 1 or not (
-            (previous[0]["drop"] == predecessor and previous[0]["status"] == "COMPLETE")
-            or previous[0]["drop"] == drop
-        ):
-            raise ValueError("Replay requires the previous drop's completed parity check")
-
-    for source, (table, key) in SOURCES.items():
-        relative = f"inputs/{drop}/WideWorldImporters.{source}.csv"
-        entry = manifest["files"][relative]
-        columns = entry["columns"]
-        if entry["primary_key"] != [key]:
-            raise ValueError(f"Unexpected identity for {source}")
-        raw_table, current_table = f"{bronze}.{table}_raw", f"{bronze}.{table}"
-
-        def landing(path, cols):
-            frame = read_csv(spark, root, path, cols)
-            frame = frame.select(*[F.col(c) if c in cols else F.lit(None).cast("string").alias(c)
-                                   for c in columns])
-            frame = (frame.withColumn("_drop", F.lit(drop)).withColumn("_file", F.lit(path))
-                     .withColumn("_ingested_at", F.current_timestamp()))
-            frame.write.format("delta").mode("append").saveAsTable(raw_table)
-            return frame
-
-        deleted = relative.removesuffix(".csv") + ".deleted.csv"
-        if drop != "D0" and deleted in manifest["files"]:
-            deletion = landing(deleted, manifest["files"][deleted]["columns"])
-            deletion.selectExpr(f"try_cast({quote(key)} AS INT) AS {quote(key)}").createOrReplaceTempView("sale_deletes")
-            spark.sql(f"MERGE INTO {current_table} t USING sale_deletes s ON t.{quote(key)} = s.{quote(key)} WHEN MATCHED THEN DELETE")
-
-        upserts = landing(relative, columns).selectExpr(*typed_projection(columns))
-        if drop == "D0":
-            upserts.write.format("delta").mode("overwrite").option("overwriteSchema", True).saveAsTable(current_table)
-        else:
-            upserts.createOrReplaceTempView("sale_upserts")
-            spark.sql(f"""MERGE INTO {current_table} t USING sale_upserts s
-                ON t.{quote(key)} = s.{quote(key)}
-                WHEN MATCHED THEN UPDATE SET * WHEN NOT MATCHED THEN INSERT *""")
-
-    spark.createDataFrame([(drop, last, new, "PENDING")],
-                          "drop STRING, last_cutoff STRING, new_cutoff STRING, status STRING") \
-        .write.format("delta").mode("overwrite").saveAsTable(context)
-    print(json.dumps({"drop": drop, "last_cutoff": last, "new_cutoff": new, "status": "INGESTED"}))
+def validate_bronze(spark, bronze, manifest, drop, last, new):
+    expected = {path.split("/")[-1].removeprefix("WideWorldImporters.").removesuffix(".csv")
+                for path in manifest["files"] if path.startswith(f"inputs/{drop}/")
+                and not path.endswith(".deleted.csv")}
+    rows = spark.sql(f"SELECT * FROM {bronze}.bronze_replay_log WHERE drop_index = "
+                     f"(SELECT max(drop_index) FROM {bronze}.bronze_replay_log)").collect()
+    passed = [row["source_table"] for row in rows if row["status"] == "PASS"]
+    if not rows or any(row["drop"] != drop for row in rows) or len(passed) != len(expected) or set(passed) != expected:
+        raise ValueError("P4 has not completed the requested bronze drop")
+    windows = spark.table(f"{bronze}.golden_drops").where("table_name = 'Sale'").collect()
+    selected = [row for row in windows if row["drop"] == drop]
+    if len(selected) != 1 or (selected[0]["last_cutoff"], selected[0]["new_cutoff"]) != (last, new):
+        raise ValueError("P4 Sale window does not match requested cutoffs")
 
 
 def parity_frames(spark, root, manifest, drop, actual):
@@ -122,9 +74,7 @@ def check(spark, catalog, bronze_schema, silver_schema, root, drop, last="", new
     last, new = drop_window(manifest, drop, last, new)
     bronze = target_namespace(catalog, bronze_schema, "bronze")
     silver = target_namespace(catalog, silver_schema, "silver")
-    context = spark.table(f"{bronze}.sale_run_context").collect()
-    if len(context) != 1 or (context[0]["drop"], context[0]["last_cutoff"], context[0]["new_cutoff"]) != (drop, last, new):
-        raise ValueError("Pipeline context does not match parity window")
+    validate_bronze(spark, bronze, manifest, drop, last, new)
     actual = spark.table(f"{silver}.sale_changes")
     if actual.columns != [c for c, _ in COLUMNS]:
         raise ValueError("Sale result column order differs from native contract")
@@ -137,5 +87,4 @@ def check(spark, catalog, bronze_schema, silver_schema, root, drop, last="", new
     print(json.dumps(result, sort_keys=True), flush=True)
     if result["status"] != "PASS":
         raise AssertionError(json.dumps(result))
-    spark.sql(f"UPDATE {bronze}.sale_run_context SET status = 'COMPLETE'")
     return result

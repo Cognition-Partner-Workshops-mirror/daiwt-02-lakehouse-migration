@@ -7,10 +7,9 @@ from pathlib import Path
 import pytest
 import yaml
 
-from parity.parity_check import compare
 from s11_sale.sale import (COLUMNS, SOURCES, assert_parity, cutoff, drop_window,
-                           namespace, sale_query, source_type, target_namespace)
-from s11_sale.runtime import typed_projection
+                           namespace, sale_query, target_namespace)
+from s11_sale.runtime import validate_bronze
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = json.loads((ROOT / "golden/manifest.json").read_text())
@@ -43,17 +42,9 @@ def test_window_mismatch_and_bad_drop():
 
 
 def test_source_types_and_safe_names():
-    assert source_type("UnitPrice") == "DECIMAL(18,2)"
-    assert source_type("TaxRate") == "DECIMAL(18,3)"
-    assert source_type("InvoiceID") == "INT"
-    assert source_type("InvoiceDate") == "DATE"
-    assert source_type("LastEditedWhen") == "TIMESTAMP_NTZ"
-    assert source_type("Photo") == "BINARY"
-    assert source_type("Description") == "STRING"
     assert namespace("catalog", "bronze_pr_0") == "`catalog`.`bronze_pr_0`"
     with pytest.raises(ValueError):
         namespace("catalog;DROP TABLE x", "bronze")
-    assert "unhex(`Photo`) AS `Photo`" in typed_projection(["Photo"])
 
 
 @pytest.mark.parametrize("catalog,schema,layer", [
@@ -89,22 +80,16 @@ def test_registry_and_replay_bundle():
     registry = json.loads((ROOT / "src/sql/units/registry.json").read_text())
     spec = registry["wwi_sale_to_silver"]
     assert spec["outputs"] == []
-    assert all(x.startswith(("bronze.", "silver.")) for x in spec["owns"])
-    assert all(f"bronze.{table}" in spec["owns"] for table, _ in SOURCES.values())
-    assert compare({"tables": [{"table": "gold.fact_sale"}]}, registry, None, None)["results"][0]["status"] == "SKIP"
+    assert spec["owns"] == ["silver.sale_changes", "silver.sale_changes_quarantine"]
+    assert spec["depends_on"] == ["bronze_landing_replay"]
     resources = yaml.safe_load((ROOT / "src/s11_sale/resources.yml").read_text())["resources"]
-    assert spec["job"] in resources["jobs"]
+    assert list(resources["jobs"]) == [spec["job"]]
     assert resources["pipelines"]["wwi_sale_silver"]["serverless"] is True
-    assert [t["task_key"] for t in resources["jobs"]["wwi_sale_drop"]["tasks"]] == ["bronze", "silver", "parity"]
-    parent = resources["jobs"][spec["job"]]
-    tasks = {task["task_key"]: task for task in parent["tasks"]}
-    assert tasks["d0"]["depends_on"] == [{"task_key": "replay_all", "outcome": "true"}]
-    assert tasks["d1"]["depends_on"] == [{"task_key": "d0"}]
-    assert tasks["d2"]["depends_on"] == [{"task_key": "d1"}]
-    assert tasks["single_drop"]["depends_on"] == [{"task_key": "replay_all", "outcome": "false"}]
-    child_params = {p["name"] for p in resources["jobs"]["wwi_sale_drop"]["parameters"]}
-    assert child_params.isdisjoint(p["name"] for p in parent["parameters"])
-    assert set(tasks["d0"]["run_job_task"]["job_parameters"]) == child_params
+    job = resources["jobs"][spec["job"]]
+    assert [t["task_key"] for t in job["tasks"]] == ["prepare", "silver", "parity"]
+    assert job["tasks"][1]["depends_on"] == [{"task_key": "prepare"}]
+    assert job["tasks"][2]["depends_on"] == [{"task_key": "silver"}]
+    assert {p["name"] for p in job["parameters"]} == {"drop", "last_cutoff", "new_cutoff"}
 
 
 def test_pipeline_registration_without_file_global(monkeypatch):
@@ -122,6 +107,27 @@ def test_pipeline_registration_without_file_global(monkeypatch):
     assert callable(globals_["sale_changes"])
     assert callable(globals_["sale_changes_quarantine"])
     assert globals_["properties"]["delta.feature.timestampNtz"] == "supported"
+
+
+@pytest.mark.parametrize("mode", ["complete", "empty", "partial", "wrong_drop", "wrong_window"])
+def test_p4_completion_guard(mode):
+    manifest = {"files": {"inputs/D1/WideWorldImporters.Sales.Invoices.csv": {}}}
+    rows = [{"source_table": "Sales.Invoices", "status": "PASS", "drop": "D1"}]
+    if mode == "empty":
+        rows = []
+    elif mode == "partial":
+        rows[0]["status"] = "FAIL"
+    elif mode == "wrong_drop":
+        rows[0]["drop"] = "D0"
+    windows = [{"drop": "D1", "last_cutoff": "last", "new_cutoff": "wrong" if mode == "wrong_window" else "new"}]
+    frame = SimpleNamespace(collect=lambda: windows)
+    spark = SimpleNamespace(sql=lambda query: SimpleNamespace(collect=lambda: rows),
+                            table=lambda name: SimpleNamespace(where=lambda query: frame))
+    if mode == "complete":
+        validate_bronze(spark, "bronze", manifest, "D1", "last", "new")
+    else:
+        with pytest.raises(ValueError):
+            validate_bronze(spark, "bronze", manifest, "D1", "last", "new")
 
 
 @pytest.fixture(scope="module")
@@ -146,7 +152,7 @@ def small_sources(spark):
         "sales_invoice_lines": (
             [(2, 1, 20, 7, "test", 120, "18.00", "15.000", "324.00", "1320.00", "2484.00", "2016-06-13 01:00:00", True)],
             "InvoiceLineID INT, InvoiceID INT, StockItemID INT, PackageTypeID INT, Description STRING, Quantity INT, UnitPrice STRING, TaxRate STRING, TaxAmount STRING, LineProfit STRING, ExtendedPrice STRING, LastEditedWhen STRING, _cast_valid BOOLEAN"),
-        "warehouse_stock_items": ([(20, 0, True)], "StockItemID INT, IsChillerStock INT, _cast_valid BOOLEAN"),
+        "warehouse_stock_items": ([(20, False, True)], "StockItemID INT, IsChillerStock BOOLEAN, _cast_valid BOOLEAN"),
         "warehouse_package_types": ([(7, "Each", True)], "PackageTypeID INT, PackageTypeName STRING, _cast_valid BOOLEAN"),
         "sales_customers": ([(10, 99, True), (11, 98, True)], "CustomerID INT, DeliveryCityID INT, _cast_valid BOOLEAN"),
     }
@@ -160,7 +166,8 @@ def small_sources(spark):
 
 
 def context(spark, last, new):
-    spark.createDataFrame([(last, new)], "last_cutoff STRING, new_cutoff STRING").createOrReplaceTempView("sale_run_context")
+    spark.createDataFrame([("D0", 0, "Sale", last, new)], "drop STRING, drop_index INT, table_name STRING, last_cutoff STRING, new_cutoff STRING").createOrReplaceTempView("golden_drops")
+    spark.createDataFrame([(0,)], "drop_index INT").createOrReplaceTempView("bronze_replay_log")
 
 
 def local_sale_query():
@@ -186,20 +193,18 @@ def test_spark_transform_normal_empty_boundaries_and_fk_failure(spark):
     assert len(rows) == 1 and rows[0]["_valid"] is False
 
 
-def test_spark_cast_failure_and_multiset_parity(spark):
-    from s11_sale.runtime import typed_projection
-
-    raw = spark.createDataFrame([("bad", "D1", "file.csv", "now")], "Quantity STRING, _drop STRING, _file STRING, _ingested_at STRING")
-    row = raw.selectExpr(*typed_projection(["Quantity"])).first()
-    assert row["Quantity"] is None and row["_cast_valid"] is False
+def test_spark_multiset_parity(spark):
     left = spark.createDataFrame([("same",), ("same",)], "value STRING")
     right = spark.createDataFrame([("same",), ("different",)], "value STRING")
     assert left.exceptAll(right).count() == right.exceptAll(left).count() == 1
 
 
 def test_golden_d0_d1_d2_reconstructed_sources_and_parity(spark):
-    from pyspark.sql import functions as F
+    from bronze.bronze_landing_replay import typed_select
     from s11_sale.runtime import parity_frames, read_csv
+
+    spec = json.loads((ROOT / "src/bronze/tables.json").read_text())
+    tables = {table["table"]: table for table in spec["tables"]}
 
     needed = {
         "sales_invoices": "InvoiceID CustomerID BillToCustomerID SalespersonPersonID InvoiceDate ConfirmedDeliveryTime LastEditedWhen",
@@ -215,10 +220,8 @@ def test_golden_d0_d1_d2_reconstructed_sources_and_parity(spark):
             path = f"inputs/{drop}/WideWorldImporters.{source}.csv"
             entry = MANIFEST["files"][path]
             up = (read_csv(spark, str(ROOT / "golden"), path, entry["columns"])
-                  .withColumn("_drop", F.lit(drop)).withColumn("_file", F.lit(path))
-                  .withColumn("_ingested_at", F.current_timestamp())
-                  .selectExpr(*typed_projection(entry["columns"]))
-                  .select(*needed[table].split(), "_cast_valid"))
+                  .selectExpr(*typed_select(tables[table]))
+                  .select(*needed[table].split()))
             if drop == "D0":
                 state = up
             else:
@@ -233,7 +236,7 @@ def test_golden_d0_d1_d2_reconstructed_sources_and_parity(spark):
                 states[table].unpersist()
             states[table] = state
             state.createOrReplaceTempView(table)
-            source_failures += state.where(f"NOT _cast_valid OR {key} IS NULL").count()
+            source_failures += state.where(f"{key} IS NULL").count()
         last, new = drop_window(MANIFEST, drop)
         context(spark, last, new)
         candidates = spark.sql(local_sale_query()).cache()

@@ -11,14 +11,6 @@ SOURCES = {
     "Sales.Customers": ("sales_customers", "CustomerID"),
 }
 
-INT_COLUMNS = set("InvoiceID InvoiceLineID CustomerID BillToCustomerID OrderID DeliveryMethodID ContactPersonID AccountsPersonID SalespersonPersonID PackedByPersonID IsCreditNote TotalDryItems TotalChillerItems LastEditedBy StockItemID PackageTypeID Quantity SupplierID ColorID UnitPackageID OuterPackageID LeadTimeDays QuantityPerOuter IsChillerStock CustomerCategoryID BuyingGroupID PrimaryContactPersonID AlternateContactPersonID DeliveryCityID PostalCityID IsStatementSent IsOnCreditHold PaymentDays".split())
-DECIMALS = {name: "DECIMAL(18,2)" for name in
-            "UnitPrice TaxAmount LineProfit ExtendedPrice RecommendedRetailPrice CreditLimit".split()}
-DECIMALS.update({name: "DECIMAL(18,3)" for name in
-                 "TaxRate TypicalWeightPerUnit StandardDiscountPercentage".split()})
-DATES = {"InvoiceDate", "AccountOpenedDate"}
-TIMESTAMPS = {"LastEditedWhen", "ConfirmedDeliveryTime", "ValidFrom", "ValidTo"}
-
 COLUMNS = [
     ("Invoice Date Key", "DATE"), ("Delivery Date Key", "DATE"),
     ("WWI Invoice ID", "INT"), ("Description", "STRING"), ("Package", "STRING"),
@@ -60,20 +52,6 @@ def target_namespace(catalog, schema, layer):
     return namespace(catalog, schema)
 
 
-def source_type(column):
-    if column in INT_COLUMNS:
-        return "INT"
-    if column in DECIMALS:
-        return DECIMALS[column]
-    if column in DATES:
-        return "DATE"
-    if column in TIMESTAMPS:
-        return "TIMESTAMP_NTZ"
-    if column == "Photo":
-        return "BINARY"
-    return "STRING"
-
-
 def cutoff(value):
     parsed = datetime.fromisoformat(value[:26])
     return parsed.strftime("%Y-%m-%d %H:%M:%S.%f") + (value[26:27] or "0")
@@ -99,8 +77,8 @@ def sale_query(bronze):
         "i.InvoiceID", "il.Description", "pt.PackageTypeName", "il.Quantity",
         "il.UnitPrice", "il.TaxRate", "il.ExtendedPrice - il.TaxAmount", "il.TaxAmount",
         "il.LineProfit", "il.ExtendedPrice",
-        "CASE WHEN si.IsChillerStock = 0 THEN il.Quantity ELSE 0 END",
-        "CASE WHEN si.IsChillerStock <> 0 THEN il.Quantity ELSE 0 END",
+        "CASE WHEN si.IsChillerStock = false THEN il.Quantity ELSE 0 END",
+        "CASE WHEN si.IsChillerStock = true THEN il.Quantity ELSE 0 END",
         "c.DeliveryCityID", "i.CustomerID", "i.BillToCustomerID", "il.StockItemID",
         "i.SalespersonPersonID", "CASE WHEN il.LastEditedWhen > i.LastEditedWhen THEN il.LastEditedWhen ELSE i.LastEditedWhen END",
     ]
@@ -111,7 +89,7 @@ def sale_query(bronze):
         "si.StockItemID IS NOT NULL", "pt.PackageTypeID IS NOT NULL",
         "pt.PackageTypeName IS NOT NULL",
         "c.CustomerID IS NOT NULL", "bt.CustomerID IS NOT NULL",
-        "i._cast_valid", "il._cast_valid", "si._cast_valid", "pt._cast_valid", "c._cast_valid", "bt._cast_valid",
+        "si.IsChillerStock IS NOT NULL",
         "i.LastEditedWhen IS NOT NULL", "il.LastEditedWhen IS NOT NULL",
         "il.Quantity IS NOT NULL", "il.TaxRate IS NOT NULL", "il.TaxAmount IS NOT NULL",
         "il.LineProfit IS NOT NULL", "il.ExtendedPrice IS NOT NULL",
@@ -127,7 +105,11 @@ def sale_query(bronze):
         LEFT JOIN {bronze}.sales_customers c ON c.CustomerID = i.CustomerID
         LEFT JOIN {bronze}.sales_customers bt ON bt.CustomerID = i.BillToCustomerID
       )
-      SELECT c.* FROM candidates c CROSS JOIN {bronze}.sale_run_context r
+      SELECT c.* FROM candidates c CROSS JOIN (
+        SELECT last_cutoff, new_cutoff FROM {bronze}.golden_drops
+        WHERE table_name = 'Sale' AND drop_index = (
+          SELECT max(drop_index) FROM {bronze}.bronze_replay_log)
+      ) r
       WHERE (`Last Modified When` > CAST(r.last_cutoff AS TIMESTAMP_NTZ)
          AND `Last Modified When` <= CAST(r.new_cutoff AS TIMESTAMP_NTZ))
          OR (`Last Modified When` IS NULL AND NOT _valid AND r.last_cutoff <> r.new_cutoff)

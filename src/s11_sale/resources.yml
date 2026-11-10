@@ -21,85 +21,22 @@ resources:
         enabled: true
       parameters:
         - name: drop
-          default: all
+          default: ${var.drop}
         - name: last_cutoff
-          default: ""
+          default: ${var.last_cutoff}
         - name: new_cutoff
-          default: ""
+          default: ${var.new_cutoff}
       tasks:
-        - task_key: plan
+        - task_key: prepare
           notebook_task:
-            notebook_path: ./plan.py
-            base_parameters:
-              golden_path: ${var.golden_path}
-        - task_key: replay_all
-          depends_on:
-            - task_key: plan
-          condition_task:
-            op: EQUAL_TO
-            left: "{{job.parameters.drop}}"
-            right: all
-        - task_key: d0
-          depends_on:
-            - task_key: replay_all
-              outcome: "true"
-          run_job_task:
-            job_id: ${resources.jobs.wwi_sale_drop.id}
-            job_parameters:
-              sale_drop: D0
-              sale_last_cutoff: "{{tasks.plan.values.d0_last}}"
-              sale_new_cutoff: "{{tasks.plan.values.d0_new}}"
-        - task_key: d1
-          depends_on:
-            - task_key: d0
-          run_job_task:
-            job_id: ${resources.jobs.wwi_sale_drop.id}
-            job_parameters:
-              sale_drop: D1
-              sale_last_cutoff: "{{tasks.plan.values.d1_last}}"
-              sale_new_cutoff: "{{tasks.plan.values.d1_new}}"
-        - task_key: d2
-          depends_on:
-            - task_key: d1
-          run_job_task:
-            job_id: ${resources.jobs.wwi_sale_drop.id}
-            job_parameters:
-              sale_drop: D2
-              sale_last_cutoff: "{{tasks.plan.values.d2_last}}"
-              sale_new_cutoff: "{{tasks.plan.values.d2_new}}"
-        - task_key: single_drop
-          depends_on:
-            - task_key: replay_all
-              outcome: "false"
-          run_job_task:
-            job_id: ${resources.jobs.wwi_sale_drop.id}
-            job_parameters:
-              sale_drop: "{{job.parameters.drop}}"
-              sale_last_cutoff: "{{tasks.plan.values.single_last}}"
-              sale_new_cutoff: "{{tasks.plan.values.single_new}}"
-    wwi_sale_drop:
-      name: ${var.job_name_prefix}wwi_sale_drop
-      max_concurrent_runs: 1
-      queue:
-        enabled: true
-      parameters:
-        - name: sale_drop
-          default: D0
-        - name: sale_last_cutoff
-          default: ""
-        - name: sale_new_cutoff
-          default: ""
-      tasks:
-        - task_key: bronze
-          notebook_task:
-            notebook_path: ./bronze.py
+            notebook_path: ./prepare.py
             base_parameters:
               catalog: ${var.catalog}
               bronze_schema: ${var.bronze_schema}
               golden_path: ${var.golden_path}
         - task_key: silver
           depends_on:
-            - task_key: bronze
+            - task_key: prepare
           pipeline_task:
             pipeline_id: ${resources.pipelines.wwi_sale_silver.id}
         - task_key: parity
