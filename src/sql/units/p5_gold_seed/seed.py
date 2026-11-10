@@ -1,5 +1,6 @@
 """Reusable D0 baseline seed; does not generate or extend golden values."""
 
+from parity.parity_check import golden_csv_source
 from sql.framework import fmt_datetime7, identifier, relation
 
 
@@ -41,17 +42,12 @@ def seed_statements(contract, catalog, schema, golden_path, *, tables=None, repl
             continue
         target = relation(f"{catalog}.{schema}.{entry['table'].split('.')[1]}")
         columns = entry["columns"]
-        csv_schema = ", ".join(f"{identifier(c)} STRING" for c in columns)
         projection = ", ".join(
             f"{fmt_datetime7(identifier(c)) if c in DATETIMES else f'CAST({identifier(c)} AS {column_type(c)})'} AS {identifier(c)}"
             for c in columns)
-        path = golden_path.rstrip("/") + "/" + entry["path"]
-        if "'" in path or "\\" in path:
-            raise ValueError("Invalid golden path")
         mode = "OR REPLACE TABLE" if replace else "TABLE IF NOT EXISTS"
         yield (f"CREATE {mode} {target} USING DELTA AS SELECT {projection} "
-               f"FROM read_files('{path}', format => 'csv', header => true, "
-               f"schema => '{csv_schema}', nullValue => '\\\\N', mode => 'FAILFAST')")
+               f"FROM {golden_csv_source(entry, golden_path)}")
 
 
 def seed(spark, contract, catalog, schema, golden_path, **kwargs):

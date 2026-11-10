@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from parity.parity_check import golden_csv_source
 from sql.units.p5_gold_seed.integration import ENTITIES, Integration, allocate_keys, cutoff_literal
 from sql.units.p5_gold_seed.job import run
 from sql.units.p5_gold_seed.seed import column_type, seed_statements
@@ -60,7 +61,7 @@ def test_seed_all_tables_and_types():
     assert not any("report_" in s for s in statements)
     assert "DECIMAL(18,3)" in "\n".join(statements)
     assert "Invalid datetime2(7)" in statements[0]
-    assert "nullValue => '\\\\N'" in statements[0]
+    assert "nullValue=>'\\\\N'" in statements[0]
     assert column_type("date_key") == "DATE"
     assert column_type("postal_code") == "STRING"
     assert column_type("photo") == "STRING"
@@ -72,6 +73,18 @@ def test_seed_all_tables_and_types():
     assert len(entry["columns"]) == 14 and len(rows) == 1461
     assert min(r["date"] for r in rows) == "2013-01-01"
     assert max(r["date"] for r in rows) == "2016-12-31"
+
+
+def test_seed_uses_parity_csv_reader_for_embedded_quotes():
+    entry = next(e for e in CONTRACT["entries"] if e["table"] == "gold.dim_stock_item" and e["drop"] == "D0")
+    rows = list(csv.DictReader((ROOT / "golden" / entry["path"]).open()))
+    quoted = '"The Gu" red shirt XML tag t-shirt (Black) M'
+    assert any(r["stock_item"] == quoted for r in rows)
+    statement, = seed_statements(CONTRACT, "dev", "gold", "/golden", tables=[entry["table"]])
+    source = golden_csv_source(entry, "/golden")
+    assert statement.endswith("FROM " + source)
+    assert 'escape=>\'"\'' in source
+    assert "multiLine=>true" in source
 
 
 def test_replay_keys_cutoffs_and_retries_match_golden():
