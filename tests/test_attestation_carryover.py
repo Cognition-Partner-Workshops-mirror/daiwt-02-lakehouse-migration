@@ -80,13 +80,27 @@ def test_changed_pr_rejected(history, change, reason):
     assert not ok and reason in message
 
 
-def test_non_ancestor_rejected(history):
+@pytest.mark.parametrize("fetch_candidate", [False, True])
+def test_rebased_non_ancestor_accepted(history, tmp_path, fetch_candidate):
     h = history
-    h["git"]("switch", "-c", "unrelated", h["base"])
-    h["write"]("src/unrelated", "unrelated")
-    other = h["commit"]("not in PR history")
-    assert can_carry_over(h["base"], h["head"], other) == (
-        False, "candidate head is not an ancestor of current head")
+    h["git"]("switch", "-c", "rebased", h["base"])
+    h["git"]("cherry-pick", "--no-commit", h["candidate"], check=False)
+    h["write"](h["registry_path"], json.dumps(h["registry"]))
+    head = h["commit"]("rebased PR changes")
+    assert subprocess.run(["git", "merge-base", "--is-ancestor", h["candidate"], head]).returncode == 1
+    repo = tmp_path
+    if fetch_candidate:
+        repo = tmp_path / "clone"
+        h["git"]("clone", "--no-local", "--single-branch", "-b", "rebased", str(tmp_path), str(repo))
+        assert subprocess.run(["git", "cat-file", "-e", h["candidate"]], cwd=repo, capture_output=True).returncode != 0
+    assert can_carry_over(h["base"], head, h["candidate"], repo=repo) == (
+        True, "only main-derived registry changes since")
+
+
+def test_unfetchable_candidate_rejected(history):
+    candidate = "0" * 40
+    assert can_carry_over(history["base"], history["head"], candidate) == (
+        False, f"candidate commit {candidate} is missing and could not be fetched from origin")
 
 
 @pytest.mark.parametrize("candidate", ["missing", "0" * 40, None])

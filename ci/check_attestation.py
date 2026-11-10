@@ -59,11 +59,14 @@ def can_carry_over(base_sha, head_sha, candidate_sha, repo=None):
     try:
         if not isinstance(candidate_sha, str) or not re.fullmatch(r"[0-9a-f]{40,64}", candidate_sha):
             return False, "invalid candidate head"
-        git("rev-parse", "--verify", f"{candidate_sha}^{{commit}}")
-        ancestor = subprocess.run(["git", "merge-base", "--is-ancestor", candidate_sha, head_sha],
-                                  cwd=repo, capture_output=True)
-        if ancestor.returncode:
-            return False, "candidate head is not an ancestor of current head"
+        try:
+            git("rev-parse", "--verify", f"{candidate_sha}^{{commit}}")
+        except subprocess.CalledProcessError:
+            try:
+                git("fetch", "--no-tags", "origin", candidate_sha)
+                git("rev-parse", "--verify", f"{candidate_sha}^{{commit}}")
+            except subprocess.CalledProcessError:
+                return False, f"candidate commit {candidate_sha} is missing and could not be fetched from origin"
         base = git("merge-base", base_sha, head_sha).strip()
         candidate_base = git("merge-base", base_sha, candidate_sha).strip()
         own_paths = paths(base, head_sha)
