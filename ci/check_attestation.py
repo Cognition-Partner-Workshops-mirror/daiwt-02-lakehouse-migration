@@ -106,6 +106,21 @@ def can_carry_over(base_sha, head_sha, candidate_sha, repo=None):
             return False, "PR changed path sets differ"
         for path in sorted(own_paths - {"src/sql/units/registry.json"}):
             if blob(candidate_sha, path) != blob(head_sha, path):
+                if (path.startswith("tests/") or re.fullmatch(r"test_.*\.py", Path(path).name)):
+                    if blob(candidate_sha, path) is not None and blob(head_sha, path) is not None:
+                        diff = git("diff", "--no-ext-diff", "--no-textconv", "--no-color", "--unified=0",
+                                   candidate_sha, head_sha, "--", path)
+                        in_hunk = False
+                        removed = False
+                        added = False
+                        for line in diff.splitlines():
+                            if line.startswith("@@ "):
+                                in_hunk = True
+                            elif in_hunk:
+                                removed |= line.startswith("-")
+                                added |= line.startswith("+")
+                        if removed and not added:
+                            continue
                 if re.fullmatch(r"resources/[^/]+\.ya?ml", path):
                     before, _ = normalize_permissions(yaml.safe_load(git("show", f"{candidate_sha}:{path}")))
                     after, has_users = normalize_permissions(yaml.safe_load(git("show", f"{head_sha}:{path}")))

@@ -99,6 +99,37 @@ def test_rebased_non_ancestor_accepted(history, tmp_path, fetch_candidate):
         True, "only main-derived registry changes since")
 
 
+@pytest.mark.parametrize("path,is_test", [
+    ("tests/assertions.txt", True),
+    ("src/sql/units/test_own.py", True),
+    ("src/sql/units/own.py", False),
+])
+@pytest.mark.parametrize("change", ["remove", "add", "change", "delete", "create"])
+def test_removal_only_test_carryover(history, path, is_test, change):
+    h = history
+    original = "def test_own():\n    assert True\n    assert 1 == 1\n    pass\n"
+    candidate = h["head"]
+    if change != "create":
+        h["write"](path, original)
+        h["git"]("add", "--", path)
+        candidate = h["commit"]("candidate test assertions")
+    if change == "delete":
+        h["git"]("rm", "--", path)
+    else:
+        after = original
+        if change == "remove":
+            after = "def test_own():\n    pass\n"
+        elif change == "add":
+            after += "    assert 2 == 2\n"
+        elif change == "change":
+            after = original.replace("assert True", "assert False")
+        h["write"](path, after)
+        h["git"]("add", "--", path)
+    head = h["commit"]("adjust test assertions")
+    ok, reason = can_carry_over(h["base"], head, candidate)
+    assert ok is (is_test and change == "remove"), reason
+
+
 def test_unfetchable_candidate_rejected(history):
     candidate = "0" * 40
     assert can_carry_over(history["base"], history["head"], candidate) == (
