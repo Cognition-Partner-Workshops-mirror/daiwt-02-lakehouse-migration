@@ -1,6 +1,7 @@
 """Require current pushed-head evidence before merging."""
 import argparse
 import json
+import re
 import subprocess
 from pathlib import Path
 
@@ -34,6 +35,50 @@ def evaluate(rows, head_sha, suffix, required_units):
     return True, "PASS"
 
 
+def can_carry_over(base_sha, head_sha, candidate_sha, repo=None):
+    def git(*args):
+        return subprocess.check_output(["git", *args], cwd=repo, text=True, stderr=subprocess.PIPE)
+
+    def paths(base, head):
+        return set(filter(None, git("diff", "--name-only", "-z", base, head).split("\0")))
+
+    def blob(head, path):
+        if not git("ls-tree", "-z", head, "--", path):
+            return None
+        return git("rev-parse", f"{head}:{path}").strip()
+
+    def own_entries(base, head):
+        path = "src/sql/units/registry.json"
+        before = json.loads(git("show", f"{base}:{path}"))
+        after = json.loads(git("show", f"{head}:{path}"))
+        if not isinstance(before, dict) or not isinstance(after, dict):
+            raise ValueError("registry must be an object")
+        return {unit: (unit in after, after.get(unit)) for unit in before.keys() | after.keys()
+                if (unit in before, before.get(unit)) != (unit in after, after.get(unit))}
+
+    try:
+        if not isinstance(candidate_sha, str) or not re.fullmatch(r"[0-9a-f]{40,64}", candidate_sha):
+            return False, "invalid candidate head"
+        git("rev-parse", "--verify", f"{candidate_sha}^{{commit}}")
+        ancestor = subprocess.run(["git", "merge-base", "--is-ancestor", candidate_sha, head_sha],
+                                  cwd=repo, capture_output=True)
+        if ancestor.returncode:
+            return False, "candidate head is not an ancestor of current head"
+        base = git("merge-base", base_sha, head_sha).strip()
+        candidate_base = git("merge-base", base_sha, candidate_sha).strip()
+        own_paths = paths(base, head_sha)
+        if own_paths != paths(candidate_base, candidate_sha):
+            return False, "PR changed path sets differ"
+        for path in sorted(own_paths - {"src/sql/units/registry.json"}):
+            if blob(candidate_sha, path) != blob(head_sha, path):
+                return False, f"PR blob differs: {path}"
+        if own_entries(base, head_sha) != own_entries(candidate_base, candidate_sha):
+            return False, "PR registry entries differ"
+    except (subprocess.CalledProcessError, OSError, ValueError) as exc:
+        return False, f"carry-over comparison failed: {exc}"
+    return True, "only main-derived registry changes since"
+
+
 def main():
     from databricks.sdk import WorkspaceClient
     parser = argparse.ArgumentParser()
@@ -53,12 +98,29 @@ def main():
                              {"head": args.head_sha, "suffix": args.suffix})
         rows = [dict(zip(COLUMNS, row)) for row in data]
         ok, reason = evaluate(rows, args.head_sha, args.suffix, required_units)
+        carried_from = None
+        if not ok and not any(row.get("status") == "PASS" for row in rows):
+            data = warehouse.sql(f"SELECT {', '.join(COLUMNS)} FROM {table_name(args.table)} WHERE suffix = :suffix AND status = 'PASS' ORDER BY recorded_at DESC",
+                                 {"suffix": args.suffix})
+            candidates = [dict(zip(COLUMNS, row)) for row in data]
+            for candidate in candidates:
+                candidate_sha = candidate.get("head_sha")
+                matches, reason = can_carry_over(args.base_sha, args.head_sha, candidate_sha)
+                if not matches:
+                    continue
+                ok, reason = evaluate([candidate], candidate_sha, args.suffix, required_units)
+                if ok:
+                    rows = [candidate]
+                    carried_from = candidate_sha
+                    break
     except Exception as exc:
         ok, reason = False, f"attestation query or selection failed: {exc}"
     body = f"# DAIWT-02 attestation\n\n**FAIL** — {reason}\n"
     if ok:
         row = rows[0]
         body = f"Head {args.head_sha} — {row['recorded_by']} — {row['recorded_at']}\n\n" + row["attestation_md"]
+        if carried_from:
+            body = f"Head {args.head_sha} — carried over from {carried_from} (only main-derived registry changes since)\n\n" + row["attestation_md"]
     Path(args.output).write_text(body)
     print(reason)
     return 0 if ok else 1
