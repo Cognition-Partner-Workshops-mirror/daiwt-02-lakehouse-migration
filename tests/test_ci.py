@@ -107,14 +107,7 @@ def test_cleanup_scoping():
 
 
 def test_zero_units_and_bundle_targets():
-    registry = json.loads((ROOT / "src/sql/units/registry.json").read_text())
-    assert isinstance(registry, dict)
-    for spec in registry.values():
-        assert isinstance(spec, dict)
-        assert isinstance(spec["job"], str)
-        for field in ("outputs", "owns", "depends_on"):
-            assert isinstance(spec[field], list)
-            assert all(isinstance(value, str) for value in spec[field])
+    assert json.loads((ROOT / "src/sql/units/registry.json").read_text()) == {}
     bundle = yaml.safe_load((ROOT / "databricks.yml").read_text())
     assert "resources" not in bundle["targets"]["prod"]
     assert set(bundle["targets"]["dev"]["resources"]["schemas"]) == {"bronze", "silver", "gold"}
