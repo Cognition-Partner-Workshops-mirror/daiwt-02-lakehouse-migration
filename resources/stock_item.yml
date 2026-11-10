@@ -11,6 +11,7 @@ resources:
       configuration:
         s05.catalog: ${var.catalog}
         s05.bronze_schema: ${var.bronze_schema}
+        s05.silver_schema: ${var.silver_schema}
         s05.source_path: ${workspace.file_path}/src/stock_item
   jobs:
     wwi_stock_item_to_silver:
@@ -19,24 +20,34 @@ resources:
       permissions:
         - group_name: users
           level: CAN_VIEW
+      parameters:
+        - name: drop
+          default: ${var.drop}
+        - name: last_cutoff
+          default: ${var.last_cutoff}
+        - name: new_cutoff
+          default: ${var.new_cutoff}
       tasks:
-        - task_key: bronze_load_D0
-          notebook_task:
-            notebook_path: ../src/stock_item/bronze_load.py
-            base_parameters:
+        - task_key: extraction_window
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file:
+              path: ../src/stock_item/window.sql
+            parameters:
               catalog: ${var.catalog}
-              bronze_schema: ${var.bronze_schema}
-              golden_path: ${var.golden_path}
-              drop: D0
-        - task_key: refresh_D0
+              silver_schema: ${var.silver_schema}
+              drop: "{{job.parameters.drop}}"
+              last_cutoff: "{{job.parameters.last_cutoff}}"
+              new_cutoff: "{{job.parameters.new_cutoff}}"
+        - task_key: refresh
           depends_on:
-            - task_key: bronze_load_D0
+            - task_key: extraction_window
           pipeline_task:
             pipeline_id: ${resources.pipelines.stock_item_silver.id}
             full_refresh: true
-        - task_key: parity_D0
+        - task_key: parity
           depends_on:
-            - task_key: refresh_D0
+            - task_key: refresh
           sql_task:
             warehouse_id: ${var.warehouse_id}
             file:
@@ -45,63 +56,4 @@ resources:
               catalog: ${var.catalog}
               silver_schema: ${var.silver_schema}
               golden_path: ${var.golden_path}
-              drop: D0
-              previous_drop: D0
-        - task_key: bronze_load_D1
-          depends_on:
-            - task_key: parity_D0
-          notebook_task:
-            notebook_path: ../src/stock_item/bronze_load.py
-            base_parameters:
-              catalog: ${var.catalog}
-              bronze_schema: ${var.bronze_schema}
-              golden_path: ${var.golden_path}
-              drop: D1
-        - task_key: refresh_D1
-          depends_on:
-            - task_key: bronze_load_D1
-          pipeline_task:
-            pipeline_id: ${resources.pipelines.stock_item_silver.id}
-            full_refresh: true
-        - task_key: parity_D1
-          depends_on:
-            - task_key: refresh_D1
-          sql_task:
-            warehouse_id: ${var.warehouse_id}
-            file:
-              path: ../src/stock_item/parity.sql
-            parameters:
-              catalog: ${var.catalog}
-              silver_schema: ${var.silver_schema}
-              golden_path: ${var.golden_path}
-              drop: D1
-              previous_drop: D0
-        - task_key: bronze_load_D2
-          depends_on:
-            - task_key: parity_D1
-          notebook_task:
-            notebook_path: ../src/stock_item/bronze_load.py
-            base_parameters:
-              catalog: ${var.catalog}
-              bronze_schema: ${var.bronze_schema}
-              golden_path: ${var.golden_path}
-              drop: D2
-        - task_key: refresh_D2
-          depends_on:
-            - task_key: bronze_load_D2
-          pipeline_task:
-            pipeline_id: ${resources.pipelines.stock_item_silver.id}
-            full_refresh: true
-        - task_key: parity_D2
-          depends_on:
-            - task_key: refresh_D2
-          sql_task:
-            warehouse_id: ${var.warehouse_id}
-            file:
-              path: ../src/stock_item/parity.sql
-            parameters:
-              catalog: ${var.catalog}
-              silver_schema: ${var.silver_schema}
-              golden_path: ${var.golden_path}
-              drop: D2
-              previous_drop: D1
+              drop: "{{job.parameters.drop}}"

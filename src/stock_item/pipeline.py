@@ -7,12 +7,13 @@ sys.path.insert(0, spark.conf.get("s05.source_path"))
 from model import RULES, changes_sql
 
 bronze = f"`{spark.conf.get('s05.catalog')}`.`{spark.conf.get('s05.bronze_schema')}`"
+silver = f"`{spark.conf.get('s05.catalog')}`.`{spark.conf.get('s05.silver_schema')}`"
 
 
 @dp.materialized_view(name="stock_item_changes")
 @dp.expect_all(RULES)
 def stock_item_changes():
-    return spark.sql(changes_sql(bronze))
+    return spark.sql(changes_sql(bronze, silver))
 
 
 @dp.materialized_view(name="stock_item_changes_quarantine")

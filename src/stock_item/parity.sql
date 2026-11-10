@@ -11,7 +11,7 @@ WITH parity_policy AS (
  )
 ), previous_dim AS (
  SELECT * FROM read_files(
-  :golden_path || '/outputs/' || :previous_drop || '/tables/Dimension.Stock_Item.csv',
+  :golden_path || '/outputs/' || CASE WHEN :drop = 'D2' THEN 'D1' ELSE 'D0' END || '/tables/Dimension.Stock_Item.csv',
   format => 'csv', header => true, inferSchema => false, nullValue => '\\N', escape => '"'
  )
 ), expected AS (

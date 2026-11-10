@@ -1,4 +1,3 @@
-import ast
 import csv
 import json
 import re
@@ -12,6 +11,7 @@ from types import SimpleNamespace
 import pytest
 
 from stock_item.model import COLUMNS, RULES, SOURCES, TYPES, changes_sql, datetime7, window
+from drops import drop_params
 
 ROOT = Path(__file__).resolve().parents[1]
 GOLDEN = ROOT / "golden"
@@ -23,29 +23,13 @@ def test_pipeline_loads_without_file_global(monkeypatch):
         pipelines=SimpleNamespace(materialized_view=decorator, expect_all=decorator)))
     source_path = str(ROOT / "src/stock_item")
     config = {"s05.source_path": source_path, "s05.catalog": "daiwt_02_mig_dev",
-              "s05.bronze_schema": "bronze_pr_16"}
+              "s05.bronze_schema": "bronze_pr_16", "s05.silver_schema": "silver_pr_16"}
     monkeypatch.setattr(sys, "path", list(sys.path))
     namespace = {"spark": SimpleNamespace(conf=SimpleNamespace(get=config.__getitem__))}
     exec(compile((ROOT / "src/stock_item/pipeline.py").read_text(), "<pipeline>", "exec"), namespace)
     assert namespace["bronze"] == "`daiwt_02_mig_dev`.`bronze_pr_16`"
     assert callable(namespace["stock_item_changes"])
     assert callable(namespace["stock_item_changes_quarantine"])
-
-
-@pytest.mark.parametrize("catalog,allowed", [
-    ("daiwt_02_mig_dev", True), ("daiwt_02_mig_prod", True), ("other", False),
-])
-def test_bronze_catalog_guard(catalog, allowed):
-    tree = ast.parse((ROOT / "src/stock_item/bronze_load.py").read_text())
-    guard = next(node for node in tree.body if isinstance(node, ast.If)
-                 and isinstance(node.test, ast.Compare)
-                 and isinstance(node.test.left, ast.Name) and node.test.left.id == "catalog")
-    code = compile(ast.Module(body=[guard], type_ignores=[]), "<catalog_guard>", "exec")
-    if allowed:
-        exec(code, {"catalog": catalog})
-    else:
-        with pytest.raises(ValueError):
-            exec(code, {"catalog": catalog})
 
 
 def rows(path):
@@ -75,7 +59,12 @@ def normalized(row):
     ("D2", ("2016-06-14 00:00:00.0000000", "2016-06-21 00:00:00.0000000")),
 ])
 def test_windows(drop, expected):
-    assert window(json.loads((GOLDEN / f"capture-{drop}.json").read_text()), drop) == expected
+    params = drop_params(json.loads((GOLDEN / "manifest.json").read_text()), drop)
+    assert ("1900-01-01 00:00:00.0000000" if drop == "D0" else params["last_cutoff"],
+            params["new_cutoff"]) == expected
+    sql = (ROOT / "src/stock_item/window.sql").read_text()
+    assert "CASE WHEN :drop = 'D0' THEN '1900-01-01 00:00:00.0000000' ELSE :last_cutoff END" in sql
+    assert ":new_cutoff AS new_cutoff" in sql
 
 
 @pytest.mark.parametrize("value", ["", None, "2016-01-01", "2016-01-01 00:00:00.12345678"])
@@ -96,18 +85,20 @@ def test_registry_and_job():
     import yaml
     registry = json.loads((ROOT / "src/sql/units/registry.json").read_text())
     entry = registry["wwi_stock_item_to_silver"]
-    assert entry["outputs"] == entry["depends_on"] == []
+    assert entry["outputs"] == []
+    assert entry["depends_on"] == ["bronze_landing_replay"]
     assert set(entry["owns"]) == {
-        *("bronze." + table for table, _ in SOURCES.values()),
-        "bronze.stock_item_window", "silver.stock_item_changes",
+        "silver.stock_item_window", "silver.stock_item_changes",
         "silver.stock_item_changes_quarantine",
     }
     resource = yaml.safe_load((ROOT / "resources/stock_item.yml").read_text())
-    tasks = resource["resources"]["jobs"][entry["job"]]["tasks"]
-    assert [t["task_key"] for t in tasks] == [
-        f"{step}_{drop}" for drop in ("D0", "D1", "D2")
-        for step in ("bronze_load", "refresh", "parity")
-    ]
+    job = resource["resources"]["jobs"][entry["job"]]
+    tasks = job["tasks"]
+    assert [t["task_key"] for t in tasks] == ["extraction_window", "refresh", "parity"]
+    assert {p["name"] for p in job["parameters"]} == {"drop", "last_cutoff", "new_cutoff"}
+    assert tasks[0]["sql_task"]["parameters"]["last_cutoff"] == "{{job.parameters.last_cutoff}}"
+    assert tasks[2]["sql_task"]["parameters"]["drop"] == "{{job.parameters.drop}}"
+    assert not (ROOT / "src/stock_item/bronze_load.py").exists()
     for prior, task in zip(tasks, tasks[1:]):
         assert task["depends_on"] == [{"task_key": prior["task_key"]}]
 
@@ -125,7 +116,12 @@ def connection():
         db.execute(f"CREATE TABLE bronze.{table} (" + ", ".join(f'"{c}" TEXT' for c in columns) + ")")
         db.executemany(f"INSERT INTO bronze.{table} VALUES (" + ",".join("?" for _ in columns) + ")",
                        [[r[c] for c in columns] for r in data])
-    db.execute("CREATE TABLE bronze.stock_item_window (drop_name TEXT, last_cutoff TEXT, new_cutoff TEXT)")
+        for name in ("ValidFrom", "ValidTo"):
+            db.execute(f"ALTER TABLE bronze.{table} ADD COLUMN {name}_str TEXT")
+            db.execute(f"UPDATE bronze.{table} SET {name}_str = {name}")
+            db.execute(f"UPDATE bronze.{table} SET {name} = substr({name}, 1, 26)")
+    db.execute("ATTACH DATABASE ':memory:' AS silver")
+    db.execute("CREATE TABLE silver.stock_item_window (drop_name TEXT, last_cutoff TEXT, new_cutoff TEXT)")
     return db
 
 
@@ -139,10 +135,11 @@ def test_golden_reconstruction_and_empty_incremental():
                 assert rows(path) == []
                 deleted = path.with_name(path.stem + ".deleted.csv")
                 assert not deleted.exists() or rows(deleted) == []
-        last, new = window(json.loads((GOLDEN / f"capture-{drop}.json").read_text()), drop)
-        db.execute("DELETE FROM bronze.stock_item_window")
-        db.execute("INSERT INTO bronze.stock_item_window VALUES (?, ?, ?)", (drop, last, new))
-        actual = list(db.execute(changes_sql("bronze")))
+        params = drop_params(json.loads((GOLDEN / "manifest.json").read_text()), drop)
+        last = "1900-01-01 00:00:00.0000000" if drop == "D0" else params["last_cutoff"]
+        db.execute("DELETE FROM silver.stock_item_window")
+        db.execute("INSERT INTO silver.stock_item_window VALUES (?, ?, ?)", (drop, last, params["new_cutoff"]))
+        actual = list(db.execute(changes_sql("bronze", "silver")))
         current = rows(GOLDEN / "outputs" / drop / "tables/Dimension.Stock_Item.csv")
         previous = (rows(GOLDEN / "outputs" / f"D{int(drop[1:]) - 1}" / "tables/Dimension.Stock_Item.csv")
                     if drop != "D0" else [])
@@ -165,7 +162,7 @@ def test_golden_reconstruction_and_empty_incremental():
         def comparable(row):
             return tuple(value for column, value in zip(COLUMNS, row) if column not in excluded)
         assert Counter(map(comparable, actual_rows)) == Counter(map(comparable, expected_rows))
-        db.execute("CREATE TEMP VIEW staged AS " + changes_sql("bronze"))
+        db.execute("CREATE TEMP VIEW staged AS " + changes_sql("bronze", "silver"))
         invalid = " OR ".join(f"NOT COALESCE(({rule}), FALSE)" for rule in RULES.values())
         assert db.execute(f"SELECT count(*) FROM staged WHERE {invalid}").fetchone()[0] == 0
         db.execute("DROP VIEW staged")
@@ -173,17 +170,17 @@ def test_golden_reconstruction_and_empty_incremental():
 
 def test_same_time_events_do_not_close_each_other():
     db = connection()
-    db.execute("INSERT INTO bronze.stock_item_window VALUES ('D0', '1900', '9999')")
+    db.execute("INSERT INTO silver.stock_item_window VALUES ('D0', '1900', '9999')")
     db.execute("INSERT INTO bronze.warehouse_stock_items_archive SELECT * FROM bronze.warehouse_stock_items_archive LIMIT 1")
-    actual = list(db.execute(changes_sql("bronze")))
+    actual = list(db.execute(changes_sql("bronze", "silver")))
     assert all(r["valid_from"] < r["valid_to"] for r in actual)
     assert len(actual) == 674
 
 
 def test_invalid_rows_quarantined_without_dropping():
     db = connection()
-    db.execute("INSERT INTO bronze.stock_item_window VALUES ('D0', '1900', '9999')")
+    db.execute("INSERT INTO silver.stock_item_window VALUES ('D0', '1900', '9999')")
     db.execute("UPDATE bronze.warehouse_stock_items SET TaxRate = '-1'")
-    actual = list(db.execute(changes_sql("bronze")))
+    actual = list(db.execute(changes_sql("bronze", "silver")))
     assert len(actual) == 671
     assert sum(r["tax_rate"] < 0 for r in actual) == 227

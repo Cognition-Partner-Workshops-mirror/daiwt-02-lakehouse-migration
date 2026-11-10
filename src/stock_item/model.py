@@ -1,4 +1,4 @@
-"""S05's temporary P4/P6 adapters and exact datetime2(7) contract."""
+"""S05's local temporal adapter over P4's typed bronze contract."""
 import re
 
 SENTINEL = "9999-12-31 23:59:59.9999999"
@@ -54,7 +54,7 @@ def window(capture, drop):
     return result
 
 
-def changes_sql(bronze):
+def changes_sql(bronze, silver):
     # Fixed-width strings preserve SQL Server's seventh fractional digit, including year 9999.
     return f"""
 WITH items AS (
@@ -67,9 +67,9 @@ WITH items AS (
  SELECT * FROM {bronze}.warehouse_colors
  UNION ALL SELECT * FROM {bronze}.warehouse_colors_archive
 ), events AS (
- SELECT i.StockItemID, i.ValidFrom AS event_time FROM items i
- CROSS JOIN {bronze}.stock_item_window w
- WHERE i.ValidFrom > w.last_cutoff AND i.ValidFrom <= w.new_cutoff
+ SELECT i.StockItemID, i.ValidFrom_str AS event_time FROM items i
+ CROSS JOIN {silver}.stock_item_window w
+ WHERE i.ValidFrom_str > w.last_cutoff AND i.ValidFrom_str <= w.new_cutoff
 ), staged AS (
  SELECT CAST(i.StockItemID AS INT) AS wwi_stock_item_id,
  i.StockItemName AS stock_item, COALESCE(c.ColorName, 'N/A') AS color,
@@ -83,15 +83,15 @@ WITH items AS (
  CAST(i.UnitPrice AS DECIMAL(18,2)) AS unit_price,
  CAST(i.RecommendedRetailPrice AS DECIMAL(18,2)) AS recommended_retail_price,
  CAST(i.TypicalWeightPerUnit AS DECIMAL(18,3)) AS typical_weight_per_unit,
- unhex(i.Photo) AS photo, i.ValidFrom AS valid_from
+ unhex(i.Photo) AS photo, i.ValidFrom_str AS valid_from
  FROM events e JOIN items i ON e.StockItemID = i.StockItemID
- AND i.ValidFrom <= e.event_time AND e.event_time < i.ValidTo
+ AND i.ValidFrom_str <= e.event_time AND e.event_time < i.ValidTo_str
  JOIN packages s ON i.UnitPackageID = s.PackageTypeID
- AND s.ValidFrom <= e.event_time AND e.event_time < s.ValidTo
+ AND s.ValidFrom_str <= e.event_time AND e.event_time < s.ValidTo_str
  JOIN packages b ON i.OuterPackageID = b.PackageTypeID
- AND b.ValidFrom <= e.event_time AND e.event_time < b.ValidTo
+ AND b.ValidFrom_str <= e.event_time AND e.event_time < b.ValidTo_str
  LEFT JOIN colors c ON i.ColorID = c.ColorID
- AND c.ValidFrom <= e.event_time AND e.event_time < c.ValidTo
+ AND c.ValidFrom_str <= e.event_time AND e.event_time < c.ValidTo_str
 ), times AS (
  SELECT DISTINCT wwi_stock_item_id, valid_from FROM staged
 ), intervals AS (
