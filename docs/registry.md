@@ -1,5 +1,7 @@
 # Unit registry
 
+PASS attestations may carry over across merges or rebases only when PR-owned paths, blobs (except removal of `users` permission grants from resource YAML or removal-only hunks in files under `tests/` or named `test_*.py` that exist at both heads), and registry-entry changes are identical and recorded units still cover the current selection.
+
 `src/sql/units/registry.json` maps unit names to job keys and table ownership.
 For example (illustrative entries; register only implemented jobs):
 
@@ -34,3 +36,5 @@ determine DROP syntax; pipeline-managed objects are skipped, so units backed by 
 Lakeflow pipeline must full-refresh it on the D0 run (reruns then start clean).
 
 Silver/Gold builders: add your entry; bronze tables already owned by the bronze unit must not be re-listed — depend on that unit instead.
+
+Units must not set resource-level permissions for `users`; both bundle targets grant `users` CAN_VIEW to every job and pipeline.

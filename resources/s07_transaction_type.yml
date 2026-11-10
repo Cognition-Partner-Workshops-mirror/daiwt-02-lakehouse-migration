@@ -1,0 +1,45 @@
+resources:
+  pipelines:
+    s07_transaction_type:
+      name: ${var.job_name_prefix}wwi_transaction_type_silver
+      catalog: ${var.catalog}
+      schema: ${var.silver_schema}
+      serverless: true
+      continuous: false
+      libraries:
+        - file:
+            path: ../src/s07/pipeline.sql
+      configuration:
+        s07.catalog: ${var.catalog}
+        s07.silver_schema: ${var.silver_schema}
+  jobs:
+    wwi_transaction_type_to_silver:
+      name: ${var.job_name_prefix}wwi_transaction_type_to_silver
+      max_concurrent_runs: 1
+      parameters:
+        - name: drop
+          default: ${var.drop}
+        - name: last_cutoff
+          default: ${var.last_cutoff}
+        - name: new_cutoff
+          default: ${var.new_cutoff}
+      tasks:
+        - task_key: prepare
+          notebook_task:
+            notebook_path: ../src/s07/prepare.py
+            base_parameters:
+              catalog: ${var.catalog}
+              silver_schema: ${var.silver_schema}
+              golden_path: ${var.golden_path}
+        - task_key: silver
+          depends_on: [{task_key: prepare}]
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.s07_transaction_type.id}
+        - task_key: parity
+          depends_on: [{task_key: silver}]
+          notebook_task:
+            notebook_path: ../src/s07/verify.py
+            base_parameters:
+              catalog: ${var.catalog}
+              silver_schema: ${var.silver_schema}
+              golden_path: ${var.golden_path}

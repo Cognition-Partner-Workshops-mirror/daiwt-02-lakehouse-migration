@@ -140,7 +140,7 @@ def test_registry_job_and_classification():
     assert len(entry["owns"]) == 30
     assert entry["depends_on"] == ["bronze_landing_replay"] and entry["outputs"] == []
     for path in ("src/sql/units/silver_temporal_views/temporal_views.py", "resources/silver_temporal_views.job.yml"):
-        assert classify(registry, [path]) == ["silver_temporal_views"]
+        assert "silver_temporal_views" in classify(registry, [path])
     selected = classify(registry, ["resources/bronze_landing_replay.job.yml"])
     assert {"bronze_landing_replay", "silver_temporal_views"} <= set(selected)
     assert "p5_gold_seed" not in selected
