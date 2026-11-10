@@ -3,9 +3,6 @@ resources:
     p5_gold_seed:
       name: ${var.job_name_prefix}p5_gold_seed
       max_concurrent_runs: 1
-      permissions:
-        - group_name: users
-          level: CAN_VIEW
       parameters:
         - name: drop
           default: ${var.drop}
