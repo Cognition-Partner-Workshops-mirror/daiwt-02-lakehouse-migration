@@ -1,0 +1,48 @@
+resources:
+  pipelines:
+    stock_holding_silver:
+      name: ${var.job_name_prefix}stock_holding_silver
+      catalog: ${var.catalog}
+      target: ${var.silver_schema}
+      serverless: true
+      continuous: false
+      root_path: ../src/s12
+      libraries:
+        - file:
+            path: ../src/s12/stock_holding_pipeline.py
+      configuration:
+        s12.catalog: ${var.catalog}
+        s12.bronze_schema: ${var.bronze_schema}
+      permissions:
+        - group_name: users
+          level: CAN_VIEW
+  jobs:
+    wwi_stock_holding_to_silver:
+      name: ${var.job_name_prefix}wwi_stock_holding_to_silver
+      max_concurrent_runs: 1
+      parameters:
+        - name: drop
+          default: D2
+        - name: last_cutoff
+          default: ${var.last_cutoff}
+        - name: new_cutoff
+          default: ${var.new_cutoff}
+      permissions:
+        - group_name: users
+          level: CAN_VIEW
+      tasks:
+        - task_key: silver_pipeline
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.stock_holding_silver.id}
+            full_refresh: true
+        - task_key: parity
+          depends_on:
+            - task_key: silver_pipeline
+          notebook_task:
+            notebook_path: ../src/s12/verify_stock_holding.py
+            base_parameters:
+              catalog: ${var.catalog}
+              bronze_schema: ${var.bronze_schema}
+              silver_schema: ${var.silver_schema}
+              golden_path: ${var.golden_path}
+              drop: "{{job.parameters.drop}}"
