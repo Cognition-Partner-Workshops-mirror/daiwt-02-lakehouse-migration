@@ -1,4 +1,10 @@
 {
+  "wwi_dim_customer_to_gold": {
+    "job": "wwi_dim_customer_to_gold",
+    "outputs": ["gold.dim_customer"],
+    "owns": [],
+    "depends_on": ["p5_gold_seed", "wwi_customer_to_silver"]
+  },
   "wwi_dim_city_to_gold": {
     "job": "wwi_dim_city_to_gold",
     "outputs": ["gold.dim_city"],
