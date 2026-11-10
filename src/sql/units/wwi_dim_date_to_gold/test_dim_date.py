@@ -98,7 +98,10 @@ def test_job_tasks_and_registration():
     job = yaml.safe_load((ROOT / "resources/wwi_dim_date_to_gold.job.yml").read_text())["resources"]["jobs"]["wwi_dim_date_to_gold"]
     assert job["name"] == "${var.job_name_prefix}wwi_dim_date_to_gold"
     assert {p["name"] for p in job["parameters"]} == {"drop", "last_cutoff", "new_cutoff"}
-    assert job["permissions"] == [dict(group_name="users", level="CAN_VIEW")]
+    assert "permissions" not in job
+    targets = yaml.safe_load((ROOT / "databricks.yml").read_text())["targets"]
+    for target in ("dev", "prod"):
+        assert dict(group_name="users", level="CAN_VIEW") in targets[target]["permissions"]
     assert [t["task_key"] for t in job["tasks"]] == ["seed", "parity"]
     assert job["tasks"][1]["depends_on"] == [dict(task_key="seed")]
     registry = json.loads((ROOT / "src/sql/units/registry.json").read_text())

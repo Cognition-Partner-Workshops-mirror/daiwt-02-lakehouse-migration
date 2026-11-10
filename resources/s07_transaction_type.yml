@@ -12,9 +12,6 @@ resources:
       configuration:
         s07.catalog: ${var.catalog}
         s07.silver_schema: ${var.silver_schema}
-      permissions:
-        - group_name: users
-          level: CAN_VIEW
   jobs:
     wwi_transaction_type_to_silver:
       name: ${var.job_name_prefix}wwi_transaction_type_to_silver
@@ -26,9 +23,6 @@ resources:
           default: ${var.last_cutoff}
         - name: new_cutoff
           default: ${var.new_cutoff}
-      permissions:
-        - group_name: users
-          level: CAN_VIEW
       tasks:
         - task_key: prepare
           notebook_task:
