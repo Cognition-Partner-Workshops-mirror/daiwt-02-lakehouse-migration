@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 
 from model import SOURCES, window
+from pyspark.sql import Window
 from pyspark.sql import functions as F
 
 for name in ("catalog", "bronze_schema", "golden_path", "drop"):
@@ -27,23 +28,31 @@ for source, (table, pk) in SOURCES.items():
     target = f"{bronze}.{table}"
     incoming = read_csv(path)
     columns = incoming.columns
+    incoming = (incoming.withColumn("_drop", F.lit(drop)).withColumn("_file", F.lit(str(path)))
+                .withColumn("_ingested_at", F.current_timestamp()))
     if drop == "D0":
         result = incoming
     else:
-        existing = spark.table(target).select(*columns)
+        existing = spark.table(target)
         deleted = path.with_name(path.stem + ".deleted.csv")
         if deleted.exists():
             removals = read_csv(deleted).select(*columns)
-            existing = (existing.join(removals.select(pk), pk, "left_anti")
-                        if pk else existing.exceptAll(removals))
+            if pk:
+                existing = existing.join(removals.select(pk), pk, "left_anti")
+            else:
+                counts = removals.groupBy(*columns).count().withColumnRenamed("count", "_s05_deleted")
+                ranked = existing.withColumn("_s05_occurrence", F.row_number().over(
+                    Window.partitionBy(*columns).orderBy("_ingested_at", "_drop", "_file")))
+                condition = [F.col(f"e.`{c}`").eqNullSafe(F.col(f"d.`{c}`")) for c in columns]
+                existing = (ranked.alias("e").join(counts.alias("d"), condition, "left")
+                            .where(F.col("e._s05_occurrence") > F.coalesce(F.col("d._s05_deleted"), F.lit(0)))
+                            .select("e.*").drop("_s05_occurrence"))
         if pk:
             existing = existing.join(incoming.select(pk), pk, "left_anti")
         result = existing.unionByName(incoming)
     # Materialize before replacing a table used in the replay query.
     scratch = f"{bronze}._s05_{table}_replay"
-    (result.withColumn("_drop", F.lit(drop)).withColumn("_file", F.lit(str(path)))
-     .withColumn("_ingested_at", F.current_timestamp())
-     .write.mode("overwrite").option("overwriteSchema", True).saveAsTable(scratch))
+    result.write.mode("overwrite").option("overwriteSchema", True).saveAsTable(scratch)
     spark.sql(f"CREATE OR REPLACE TABLE {target} AS SELECT * FROM {scratch}")
     spark.sql(f"DROP TABLE {scratch}")
 
