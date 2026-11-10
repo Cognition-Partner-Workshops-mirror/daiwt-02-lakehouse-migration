@@ -2,6 +2,7 @@
 import json
 from pathlib import Path
 
+import model
 from model import SOURCES, window
 from pyspark.sql import Window
 from pyspark.sql import functions as F
@@ -56,7 +57,8 @@ for source, (table, pk) in SOURCES.items():
     spark.sql(f"CREATE OR REPLACE TABLE {target} AS SELECT * FROM {scratch}")
     spark.sql(f"DROP TABLE {scratch}")
 
-capture = json.loads((Path(golden) / f"capture-{drop}.json").read_text())
+capture_path = Path(model.__file__).resolve().parents[2] / "golden" / f"capture-{drop}.json"
+capture = json.loads(capture_path.read_text())
 last, new = window(capture, drop)
 (spark.createDataFrame([(drop, last, new)], "drop STRING, last_cutoff STRING, new_cutoff STRING")
  .write.mode("overwrite").saveAsTable(f"{bronze}.stock_item_window"))
