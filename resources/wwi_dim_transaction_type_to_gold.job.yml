@@ -1,0 +1,39 @@
+resources:
+  jobs:
+    wwi_dim_transaction_type_to_gold:
+      name: ${var.job_name_prefix}wwi_dim_transaction_type_to_gold
+      max_concurrent_runs: 1
+      parameters:
+        - name: drop
+          default: ${var.drop}
+        - name: last_cutoff
+          default: ${var.last_cutoff}
+        - name: new_cutoff
+          default: ${var.new_cutoff}
+      tasks:
+        - task_key: silver
+          run_job_task:
+            job_id: ${resources.jobs.wwi_transaction_type_to_silver.id}
+            job_parameters:
+              drop: "{{job.parameters.drop}}"
+              last_cutoff: "{{job.parameters.last_cutoff}}"
+              new_cutoff: "{{job.parameters.new_cutoff}}"
+        - task_key: load
+          depends_on:
+            - task_key: silver
+          notebook_task:
+            notebook_path: ../src/sql/units/wwi_dim_transaction_type_to_gold/job.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              silver_schema: ${var.silver_schema}
+              golden_path: ${var.golden_path}
+        - task_key: parity
+          depends_on:
+            - task_key: load
+          notebook_task:
+            notebook_path: ../src/sql/units/wwi_dim_transaction_type_to_gold/verify_transaction_type.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              golden_path: ${var.golden_path}
