@@ -1,0 +1,38 @@
+resources:
+  jobs:
+    bronze_landing_replay:
+      name: ${var.job_name_prefix}bronze_landing_replay
+      max_concurrent_runs: 1
+      parameters:
+        - name: drop
+          default: ${var.drop}
+        - name: last_cutoff
+          default: ${var.last_cutoff}
+        - name: new_cutoff
+          default: ${var.new_cutoff}
+      environments:
+        - environment_key: bronze
+          spec:
+            environment_version: "2"
+      tasks:
+        - task_key: bronze_landing_replay
+          environment_key: bronze
+          max_retries: 0
+          timeout_seconds: 3600
+          spark_python_task:
+            python_file: ../src/bronze/bronze_landing_replay.py
+            parameters:
+              - --catalog
+              - ${var.catalog}
+              - --schema
+              - ${var.bronze_schema}
+              - --golden-path
+              - ${var.golden_path}
+              - --spec
+              - ${workspace.file_path}/src/bronze/tables.json
+              - --drop
+              - "{{job.parameters.drop}}"
+              - --last-cutoff
+              - "{{job.parameters.last_cutoff}}"
+              - --new-cutoff
+              - "{{job.parameters.new_cutoff}}"

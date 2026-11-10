@@ -10,7 +10,7 @@ SQL Server `WideWorldImporters`, `WideWorldImportersDW` and SSIS packages.
 | `databricks.yml` | Dev and production bundle targets |
 | `src/sql/units/` | Migrated SQL files and `registry.json`; currently zero units |
 | `src/parity/parity_check.py` | Golden CSV multiset comparison using SDK Files and SQL Statements APIs |
-| `ci/dev_verify.sh` | Deploy dev, run all registered unit jobs and parity |
+| `ci/dev_verify.sh` | Deploy dev, replay selected jobs and parity for D0/D1/D2, record UC evidence |
 | `ci/attest.py` | Fail-closed Markdown attestation from parity JSON |
 | `ci/reset.sh`, `ci/sweep_dev.sh` | Scoped cleanup |
 | `tests/` | Offline pytest tests |
@@ -68,34 +68,51 @@ Registered outputs report PASS only for exact row-count and content matches.
 2. Register the bundle job key and all produced golden tables:
 
    ```json
-   {"load_sale": {"job": "load_sale", "outputs": ["gold.fact_sale"]}}
+   {"load_sale": {"job": "load_sale", "outputs": ["gold.fact_sale"], "depends_on": ["load_customer"]}}
    ```
 
 3. Add offline tests. Each output has exactly one producer. Registry insertion order
    determines job execution order; list upstream units before their consumers.
 
-`classify_changes.sh` compares `BASE_SHA`/`HEAD_SHA` (default `origin/main`/`HEAD`).
-SQL changes select their unit; registry or shared framework changes select all units.
-README, workflow and test-only edits do not select unit jobs. Classification is recorded
-as diagnostic evidence. Dev verification runs all registered units so a fresh PR schema
-contains every registered output checked by parity.
+Unit jobs must declare job-level replay parameters:
+
+```yaml
+resources:
+  jobs:
+    load_sale:
+      name: ${var.job_name_prefix}load_sale
+      parameters:
+        - name: drop
+          default: ${var.drop}
+        - name: last_cutoff
+          default: ${var.last_cutoff}
+        - name: new_cutoff
+          default: ${var.new_cutoff}
+      tasks: []
+```
+
+`depends_on` is optional and lists upstream registry keys. SQL files, unit directories,
+and `resources/<unit>.job.yml` select their unit plus transitive dependants in registry
+order. Registry and shared changes select all; README, docs, workflows and tests select
+none. Omitted units in `dev_verify` classify against the merge base of `origin/main`;
+`'*'` selects all, a comma/space list selects explicit units plus dependants.
 
 ## CI
 
 | Workflow | Trigger and behavior |
 | --- | --- |
-| `pr.yml` | PRs to `main` or `pre-migration`; offline tests, strict dev validation, full registered-unit verification, sticky parity attestation and evidence artifact |
-| `deploy-prod.yml` | Push to `main` or manual; strict prod validation, bundle deployment, all registered production units and prod parity |
+| `pr.yml` | PRs to `main` or `pre-migration`; offline tests, strict dev validation, pushed-head UC evidence check and sticky attestation; no deployment or job execution |
+| `deploy-prod.yml` | Push to `main` or manual; strict prod validation, deployment, D0 -> D1 -> D2 jobs and parity, three-drop attestation artifacts |
 | `reset.yml` | Manual `target=dev|prod`; runs only if `confirm` exactly matches target |
-| `dev-sweep.yml` | Manual; removes dev PR deployments for closed PRs |
+| `dev-sweep.yml` | Manual; removes closed PR deployments, or a single optional `suffix=pr_<n>` deployment |
 
 Reset dev removes only `bronze|silver|gold_pr_<n>` schemas bearing this bundle's
 comment marker and destroys their suffix-scoped bundle jobs. Sweep uses the same
 scope but only for closed PR numbers obtained from GitHub. Production reset destroys
 this bundle's production jobs and drops only tables listed in the units registry;
 it leaves Terraform-owned schemas in place. `landing` and its golden volume are
-never cleanup targets. These destructive scripts must run as Devin-CI, the deployment
-principal, so bundle state resolves to the same workspace user root as deployment.
+never cleanup targets. Bundle destruction must use the original deployment principal
+so state resolves to the same workspace user root.
 There are currently no production tables or jobs to reset.
 
 ## Local checks
@@ -107,10 +124,21 @@ pip install -r requirements-dev.txt
 python -m pytest -q
 databricks bundle validate --strict -t prod
 databricks bundle validate --strict -t dev --var schema_suffix=pr_1
-python src/parity/parity_check.py --profile DEFAULT
-python ci/attest.py
+python ci/drops.py D1
+bash ci/dev_verify.sh pr_<n> '*'
+python ci/attest.py out/parity-D0.json out/parity-D1.json out/parity-D2.json
 ```
 
-For an authorized dev deployment, run `bash ci/dev_verify.sh pr_<n>`.
-Parity writes `out/parity.json`; attestation writes `attestation.md`. Missing or
-inconsistent results and any FAIL cause attestation to exit nonzero.
+Parity writes `out/parity-D0.json`, `out/parity-D1.json`, `out/parity-D2.json`;
+attestation writes `attestation.md`. Replay stops on the first failed drop and records
+FAIL evidence even when files are missing. The worktree must be clean and HEAD pushed.
+
+## Builder flow
+
+Open PR -> push -> run `bash ci/dev_verify.sh pr_<n> '<units>'` as Devin at the exact
+pushed head -> evidence row in `daiwt_02_mig_dev.default.pr_attestation` -> rerun the
+failed `attestation` check with REST
+`POST /repos/<o>/<r>/actions/runs/<id>/rerun-failed-jobs` -> merge ->
+`databricks bundle destroy -t dev --var schema_suffix=pr_<n> --auto-approve` as Devin.
+Every new push needs a fresh `dev_verify`. PR CI reads evidence as Devin-CI; it never
+deploys or runs jobs. Run URLs are saved to `out/run-urls.txt` and the evidence row.

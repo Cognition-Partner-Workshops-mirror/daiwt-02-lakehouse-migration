@@ -5,22 +5,38 @@ CREATE OR REFRESH MATERIALIZED VIEW employee_changes (
   CONSTRAINT photo_hex EXPECT (photo IS NULL OR photo RLIKE '^([0-9A-F]{2})*$'),
   CONSTRAINT valid_interval EXPECT (valid_from < valid_to)
 ) AS
-WITH person_history AS (
-  SELECT * EXCEPT (_loaded_drop) FROM ${bronze_catalog}.${bronze_schema}.application_people
+WITH fully_applied_drops AS (
+  SELECT drop, drop_index
+  FROM ${bronze_catalog}.${bronze_schema}.bronze_replay_log
+  GROUP BY drop, drop_index
+  HAVING count(*) = 38 AND count_if(status = 'PASS') = 38
+    AND count(DISTINCT source_table) = 38
+), employee_window AS (
+  SELECT
+    CASE WHEN instr(w.last_cutoff, '.') = 0 THEN concat(w.last_cutoff, '.0000000') ELSE w.last_cutoff END AS last_cutoff,
+    CASE WHEN instr(w.new_cutoff, '.') = 0 THEN concat(w.new_cutoff, '.0000000') ELSE w.new_cutoff END AS new_cutoff
+  FROM ${bronze_catalog}.${bronze_schema}.golden_drops w
+  JOIN fully_applied_drops d ON w.drop = d.drop AND w.drop_index = d.drop_index
+  WHERE w.table_name = 'Employee'
+    AND d.drop_index = (SELECT max(drop_index) FROM fully_applied_drops)
+), person_history AS (
+  SELECT PersonID, FullName, PreferredName, IsEmployee, IsSalesperson, Photo, ValidFrom_str, ValidTo_str
+  FROM ${bronze_catalog}.${bronze_schema}.application_people
   UNION ALL
-  SELECT * EXCEPT (_loaded_drop) FROM ${bronze_catalog}.${bronze_schema}.application_people_archive
+  SELECT PersonID, FullName, PreferredName, IsEmployee, IsSalesperson, Photo, ValidFrom_str, ValidTo_str
+  FROM ${bronze_catalog}.${bronze_schema}.application_people_archive
 ), events AS (
-  SELECT p.PersonID, p.ValidFrom
-  FROM person_history p CROSS JOIN ${bronze_catalog}.${bronze_schema}.employee_drop_window w
-  WHERE p.ValidFrom > w.last_cutoff AND p.ValidFrom <= w.new_cutoff
-    AND try_cast(p.IsEmployee AS INT) <> 0
+  SELECT p.PersonID, p.ValidFrom_str
+  FROM person_history p CROSS JOIN employee_window w
+  WHERE p.ValidFrom_str > w.last_cutoff AND p.ValidFrom_str <= w.new_cutoff
+    AND p.IsEmployee = true
 ), person_as_of AS (
   SELECT p.* FROM events e JOIN person_history p
-    ON p.PersonID = e.PersonID AND p.ValidFrom <= e.ValidFrom AND p.ValidTo > e.ValidFrom
+    ON p.PersonID = e.PersonID AND p.ValidFrom_str <= e.ValidFrom_str AND p.ValidTo_str > e.ValidFrom_str
 ), staged AS (
-  SELECT try_cast(PersonID AS INT) AS wwi_employee_id, FullName AS employee,
-    PreferredName AS preferred_name, try_cast(IsSalesperson AS INT) AS is_salesperson,
-    upper(Photo) AS photo, ValidFrom AS valid_from
+  SELECT PersonID AS wwi_employee_id, FullName AS employee,
+    PreferredName AS preferred_name, cast(IsSalesperson AS INT) AS is_salesperson,
+    upper(Photo) AS photo, ValidFrom_str AS valid_from
   FROM person_as_of
 )
 SELECT s.wwi_employee_id, s.employee, s.preferred_name, s.is_salesperson, s.photo, s.valid_from,

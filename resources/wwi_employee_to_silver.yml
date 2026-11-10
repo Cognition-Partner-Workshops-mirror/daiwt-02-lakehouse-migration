@@ -21,83 +21,30 @@ resources:
       permissions:
         - group_name: users
           level: CAN_VIEW
+      parameters:
+        - name: drop
+          default: ${var.drop}
+        - name: last_cutoff
+          default: ${var.last_cutoff}
+        - name: new_cutoff
+          default: ${var.new_cutoff}
       tasks:
-        - task_key: bronze_D0
-          notebook_task:
-            notebook_path: ../src/sql/units/wwi_employee_to_silver/bronze.py
-            base_parameters:
-              catalog: ${var.catalog}
-              bronze_schema: ${var.bronze_schema}
-              golden_path: ${var.golden_path}
-              drop: D0
-        - task_key: silver_D0
-          depends_on:
-            - task_key: bronze_D0
+        - task_key: silver
           pipeline_task:
             pipeline_id: ${resources.pipelines.wwi_employee_pipeline.id}
             full_refresh: true
-        - task_key: parity_D0
+        - task_key: parity
           depends_on:
-            - task_key: silver_D0
+            - task_key: silver
           sql_task:
             warehouse_id: ${var.warehouse_id}
             file:
-              path: ../src/sql/units/wwi_employee_to_silver/parity_D0.sql
+              path: ../src/sql/units/wwi_employee_to_silver/parity.sql
             parameters:
-              catalog: ${var.catalog}
-              silver_schema: ${var.silver_schema}
-              golden_path: ${var.golden_path}
-        - task_key: bronze_D1
-          depends_on:
-            - task_key: parity_D0
-          notebook_task:
-            notebook_path: ../src/sql/units/wwi_employee_to_silver/bronze.py
-            base_parameters:
               catalog: ${var.catalog}
               bronze_schema: ${var.bronze_schema}
-              golden_path: ${var.golden_path}
-              drop: D1
-        - task_key: silver_D1
-          depends_on:
-            - task_key: bronze_D1
-          pipeline_task:
-            pipeline_id: ${resources.pipelines.wwi_employee_pipeline.id}
-            full_refresh: true
-        - task_key: parity_D1
-          depends_on:
-            - task_key: silver_D1
-          sql_task:
-            warehouse_id: ${var.warehouse_id}
-            file:
-              path: ../src/sql/units/wwi_employee_to_silver/parity_D1.sql
-            parameters:
-              catalog: ${var.catalog}
               silver_schema: ${var.silver_schema}
               golden_path: ${var.golden_path}
-        - task_key: bronze_D2
-          depends_on:
-            - task_key: parity_D1
-          notebook_task:
-            notebook_path: ../src/sql/units/wwi_employee_to_silver/bronze.py
-            base_parameters:
-              catalog: ${var.catalog}
-              bronze_schema: ${var.bronze_schema}
-              golden_path: ${var.golden_path}
-              drop: D2
-        - task_key: silver_D2
-          depends_on:
-            - task_key: bronze_D2
-          pipeline_task:
-            pipeline_id: ${resources.pipelines.wwi_employee_pipeline.id}
-            full_refresh: true
-        - task_key: parity_D2
-          depends_on:
-            - task_key: silver_D2
-          sql_task:
-            warehouse_id: ${var.warehouse_id}
-            file:
-              path: ../src/sql/units/wwi_employee_to_silver/parity_D2.sql
-            parameters:
-              catalog: ${var.catalog}
-              silver_schema: ${var.silver_schema}
-              golden_path: ${var.golden_path}
+              drop: "{{job.parameters.drop}}"
+              last_cutoff: "{{job.parameters.last_cutoff}}"
+              new_cutoff: "{{job.parameters.new_cutoff}}"

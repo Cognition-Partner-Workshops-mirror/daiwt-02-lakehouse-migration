@@ -1,9 +1,19 @@
 bundle:
   name: daiwt-02-migration
 
-include: [resources/*.yml]
+include:
+  - resources/*.yml
 
 variables:
+  drop:
+    description: Runner overrides this per drop at run time.
+    default: D0
+  last_cutoff:
+    description: Runner overrides this per drop at run time.
+    default: "2016-06-06 12:31:17.0000000"
+  new_cutoff:
+    description: Runner overrides this per drop at run time.
+    default: "2016-06-06 12:31:17.0000000"
   catalog:
     description: Target Unity Catalog catalog.
   schema_suffix:
