@@ -184,11 +184,11 @@ def test_workflow_oidc_environments():
 
 
 @pytest.mark.parametrize("path,expected", [
-    ("src/sql/units/a.sql", ["c", "a", "b"]),
-    ("src/sql/units/a/query.sql", ["c", "a", "b"]),
-    ("resources/a.job.yml", ["c", "a", "b"]),
-    ("ci/drops.py", ["c", "a", "b", "z"]),
-    ("src/sql/units/registry.json", ["c", "a", "b", "z"]),
+    ("src/sql/units/a.sql", ["a", "b", "c"]),
+    ("src/sql/units/a/query.sql", ["a", "b", "c"]),
+    ("resources/a.job.yml", ["a", "b", "c"]),
+    ("ci/drops.py", ["a", "b", "c", "z"]),
+    ("src/sql/units/registry.json", ["a", "b", "c", "z"]),
     ("docs/readme.md", []), ("tests/test_ci.py", []), ("README.md", []), (".github/workflows/pr.yml", [])])
 def test_selection(path, expected):
     registry = {"c": {"depends_on": ["b"]}, "a": {}, "b": {"depends_on": ["a"]}, "z": {}}
@@ -197,8 +197,8 @@ def test_selection(path, expected):
 
 def test_expand():
     registry = {"b": {"depends_on": ["a"]}, "a": {}, "c": {}}
-    assert expand(registry, ["a"]) == ["b", "a"]
-    assert expand(registry, "*") == list(registry)
+    assert expand(registry, ["a"]) == ["a", "b"]
+    assert expand(registry, "*") == ["a", "b", "c"]
     assert expand(registry, []) == []
     with pytest.raises(ValueError):
         expand(registry, ["unknown"])

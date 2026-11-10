@@ -18,7 +18,8 @@ import json, re, subprocess, sys
 from pathlib import Path
 sys.path.insert(0, "ci")
 from classify_changes import classify, expand
-registry = json.loads(Path("src/sql/units/registry.json").read_text())
+from registry import load
+registry = load()
 if sys.argv[1]:
     units = expand(registry, re.split(r"[,\s]+", sys.argv[1].strip()))
 else:
@@ -34,6 +35,12 @@ fi
 if [[ $status == PASS ]]; then
   if ! databricks bundle validate --strict -t dev --var "schema_suffix=$suffix" ||
      ! databricks bundle deploy -t dev --var "schema_suffix=$suffix"; then status=FAIL; fi
+fi
+if [[ $status == PASS ]]; then
+  units=$(python -c 'import json; print(",".join(json.load(open("out/selected-units.json"))))')
+  if [[ -n $units ]]; then
+    if ! python ci/cleanup.py --suffix "$suffix" --units "$units"; then status=FAIL; fi
+  fi
 fi
 if [[ $status == PASS ]]; then
   for D in D0 D1 D2; do
