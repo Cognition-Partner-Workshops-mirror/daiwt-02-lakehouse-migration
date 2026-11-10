@@ -106,6 +106,16 @@ def test_guard_before_execution():
         apply_governance(DEV_CATALOG, ["gold_pr_1", "landing"], lambda _: pytest.fail("must not execute"))
 
 
+def test_spark_python_task_bootstrap_without_file(monkeypatch):
+    script = ROOT / "src/governance/apply_governance.py"
+    monkeypatch.setattr(sys, "argv", [str(script)])
+    monkeypatch.setattr(sys, "path", list(sys.path))
+    namespace = {"__name__": "spark_task_bootstrap", "__package__": None}
+    exec(compile(script.read_text(), str(script), "exec"), namespace)
+    assert sys.path[0] == str(ROOT / "src")
+    assert callable(namespace["main"])
+
+
 def test_apply_discovery_and_summary(capsys):
     seen = []
 
@@ -186,5 +196,10 @@ def test_smoke_is_dev_scoped_and_table_only_cleanup():
     assert not any("DROP SCHEMA" in s or "CREATE OR REPLACE" in s for s in sql)
     assert not any("prod" in s for s in sql)
     assert any("column_tags" in s for s in sql)
+    assert all("schema_name = '" in s and "table_schema" not in s
+               for s in sql if ".table_tags " in s or ".column_tags " in s)
+    retained = list(statements("pr_123", keep=True))
+    assert retained == sql[:-4]
+    assert not any(s.startswith("DROP ") for s in retained)
     with pytest.raises(ValueError):
         list(statements("prod"))

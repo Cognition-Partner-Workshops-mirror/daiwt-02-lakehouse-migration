@@ -92,5 +92,6 @@ grant `users` CAN_VIEW; governance does not grant data access.
 `PYTHONPATH=src python -m governance.smoke pr_123` renders sequential SQL for
 fresh fixture tables, quality assertions, metadata assertions and table-only
 cleanup. Optional `--warehouse-id` executes it. It never replaces existing
-tables or drops schemas; use an unused PR suffix. Failure leaves fixtures for
+tables. Add `--keep` to retain fixtures for a subsequent deployed job check.
+It never drops schemas; use an unused PR suffix. Failure leaves fixtures for
 inspection. No production catalog is accepted by the smoke generator.

@@ -11,7 +11,7 @@ from . import DEV_CATALOG, governance_statements, literal, resolve
 from .quality import quarantine_sql
 
 
-def statements(suffix):
+def statements(suffix, keep=False):
     if not re.fullmatch(r"pr_[0-9]+", suffix):
         raise ValueError("smoke requires pr_<n>")
     fixtures = [
@@ -43,25 +43,28 @@ def statements(suffix):
         schema = f"{layer}_{suffix}"
         yield from governance_statements(DEV_CATALOG, schema, layer, table, columns, "MANAGED")
         where = f"table_schema = '{schema}' AND table_name = '{table}'"
+        tag_where = f"schema_name = '{schema}' AND table_name = '{table}'"
         info = f"{DEV_CATALOG}.information_schema"
         metadata = resolve(layer, table)
         yield f"SELECT assert_true(count(*) = 1 AND max(comment) = {literal(metadata['comment'])}) FROM {info}.tables WHERE {where}"
         for key, value in metadata["tags"].items():
-            yield f"SELECT assert_true(count(*) = 1) FROM {info}.table_tags WHERE {where} AND tag_name = {literal(key)} AND tag_value = {literal(value)}"
+            yield f"SELECT assert_true(count(*) = 1) FROM {info}.table_tags WHERE {tag_where} AND tag_name = {literal(key)} AND tag_value = {literal(value)}"
         yield f"SELECT assert_true(count(*) = 1 AND max(comment) = 'Golden extraction drop identifier.') FROM {info}.columns WHERE {where} AND column_name = '_drop'"
         # The convention sets column comments, not column tags.
-        yield f"SELECT assert_true(count(*) = 0) FROM {info}.column_tags WHERE {where}"
+        yield f"SELECT assert_true(count(*) = 0) FROM {info}.column_tags WHERE {tag_where}"
     yield f"SELECT assert_true(count(*) = 1 AND max(comment) = 'Legacy DW column: Customer Key') FROM {DEV_CATALOG}.information_schema.columns WHERE table_schema = 'gold_{suffix}' AND table_name = 'dim_customer' AND column_name = 'customer_key'"
-    for layer, table, _ in reversed(fixtures):
-        yield f"DROP TABLE {DEV_CATALOG}.{layer}_{suffix}.{table}"
+    if not keep:
+        for layer, table, _ in reversed(fixtures):
+            yield f"DROP TABLE {DEV_CATALOG}.{layer}_{suffix}.{table}"
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("suffix")
     parser.add_argument("--warehouse-id")
+    parser.add_argument("--keep", action="store_true", help="retain fixture tables for deployed job verification")
     args = parser.parse_args()
-    sql = list(statements(args.suffix))
+    sql = list(statements(args.suffix, keep=args.keep))
     if args.warehouse_id:
         from .apply_governance import warehouse_executor
 

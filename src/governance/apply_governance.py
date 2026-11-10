@@ -6,7 +6,7 @@ import sys
 import time
 
 if __package__ in (None, ""):
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    sys.path.insert(0, str(Path(globals().get("__file__", sys.argv[0])).resolve().parents[1]))
 
 from governance import governance_statements, guard_catalog, identifier, literal
 
