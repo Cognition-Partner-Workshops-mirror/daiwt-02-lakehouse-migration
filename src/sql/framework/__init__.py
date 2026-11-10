@@ -63,19 +63,26 @@ FROM {s}"""
     return close, insert
 
 
-def lookup_dim_key(dimension, *, key, business_key, natural_id, timestamp,
+def lookup_dim_key(dimension, facts, *, fact_row_key, key, business_key,
+                   natural_id, timestamp, output_key="dimension_key",
                    valid_from="valid_from", valid_to="valid_to"):
-    """Scalar expression; natural_id/timestamp are trusted outer SQL expressions.
+    """SELECT fact columns plus the looked-up key using a range LEFT JOIN.
 
-    Use fact Last Modified When for timestamp. Equal valid_from ties are resolved
-    by surrogate key, after the required earliest-valid_from ordering.
+    fact_row_key is a nonempty sequence uniquely identifying each fact row.
+    natural_id and timestamp name fact columns; use Last Modified When for the
+    timestamp. output_key must not already exist in facts. Equal valid_from
+    ties are resolved by surrogate key after earliest-valid_from ordering.
     """
-    dim = relation(dimension)
+    if not fact_row_key:
+        raise ValueError("fact_row_key must uniquely identify each fact row")
+    dim, fact = relation(dimension), relation(facts)
     k, bk, vf, vt = map(identifier, (key, business_key, valid_from, valid_to))
-    return f"""COALESCE((SELECT d.{k} FROM {dim} AS d
-WHERE d.{bk} = ({natural_id}) AND ({timestamp}) > d.{vf}
-AND ({timestamp}) <= d.{vt}
-ORDER BY d.{vf}, d.{k} LIMIT 1), 0)"""
+    nid, ts, out = map(identifier, (natural_id, timestamp, output_key))
+    partition = ", ".join(f"f.{identifier(c)}" for c in fact_row_key)
+    return f"""SELECT f.*, coalesce(d.{k}, 0) AS {out}
+FROM {fact} AS f LEFT JOIN {dim} AS d
+ON d.{bk} = f.{nid} AND f.{ts} > d.{vf} AND f.{ts} <= d.{vt}
+QUALIFY ROW_NUMBER() OVER (PARTITION BY {partition} ORDER BY d.{vf}, d.{k}) = 1"""
 
 
 def fmt_datetime7(expression, *, source="string"):

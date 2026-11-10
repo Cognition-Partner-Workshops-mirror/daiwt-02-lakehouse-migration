@@ -49,11 +49,18 @@ def test_lookup_boundaries_and_first_match(ts, expected):
                    [(1, START_OF_TIME, "2016-01-01 00:00:00.0000000"),
                     (2, "2016-01-01 00:00:00.0000000", END_OF_TIME),
                     (3, "2016-01-02 00:00:00.0000000", END_OF_TIME)])
-    lookup = lookup_dim_key("dim", key="key", business_key="id", natural_id="5", timestamp=":ts")
-    assert db.execute("SELECT " + lookup, {"ts": ts}).fetchone() == (expected,)
-    for natural_id in ["NULL", "99"]:
-        lookup = lookup_dim_key("dim", key="key", business_key="id", natural_id=natural_id, timestamp=":ts")
-        assert db.execute("SELECT " + lookup, {"ts": ts}).fetchone() == (0,)
+    db.execute("CREATE TABLE facts (fact_id INT, natural_id INT, modified TEXT)")
+    db.executemany("INSERT INTO facts VALUES (?, ?, ?)", [(1, 5, ts), (2, None, ts), (3, 99, ts)])
+    lookup = lookup_dim_key("dim", "facts", fact_row_key=["fact_id"], key="key", business_key="id",
+                            natural_id="natural_id", timestamp="modified")
+    assert "LEFT JOIN" in lookup and "LIMIT" not in lookup
+    # SQLite has window functions but no QUALIFY; apply that filter in an outer query.
+    select, qualify = lookup.split("\nQUALIFY ")
+    select = select.replace("\nFROM", ", " + qualify.removesuffix(" = 1") + " AS rank\nFROM", 1)
+    rows = db.execute(f"SELECT fact_id, dimension_key FROM ({select}) WHERE rank = 1 ORDER BY fact_id").fetchall()
+    assert rows == [(1, expected), (2, 0), (3, 0)]
+    db.execute("DELETE FROM facts")
+    assert db.execute(f"SELECT * FROM ({select}) WHERE rank = 1").fetchall() == []
 
 
 def test_formatters_and_smoke_contract():
@@ -73,6 +80,7 @@ def test_formatters_and_smoke_contract():
 @pytest.mark.parametrize("call", [lambda: identifier("bad;drop"),
                                   lambda: fmt_datetime7("x", source="bad"),
                                   lambda: fmt_decimal("x", scale=39),
+                                  lambda: lookup_dim_key("dim", "facts", fact_row_key=[], key="key", business_key="id", natural_id="id", timestamp="ts"),
                                   lambda: list(statements("gold"))])
 def test_invalid_sql_parameters(call):
     with pytest.raises(ValueError):
