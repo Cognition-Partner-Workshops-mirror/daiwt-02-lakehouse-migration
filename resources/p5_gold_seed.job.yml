@@ -1,0 +1,23 @@
+resources:
+  jobs:
+    p5_gold_seed:
+      name: ${var.job_name_prefix}p5_gold_seed
+      max_concurrent_runs: 1
+      permissions:
+        - group_name: users
+          level: CAN_VIEW
+      parameters:
+        - name: drop
+          default: ${var.drop}
+        - name: last_cutoff
+          default: ${var.last_cutoff}
+        - name: new_cutoff
+          default: ${var.new_cutoff}
+      tasks:
+        - task_key: seed_and_integration
+          notebook_task:
+            notebook_path: ../src/sql/units/p5_gold_seed/job.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              golden_path: ${var.golden_path}
