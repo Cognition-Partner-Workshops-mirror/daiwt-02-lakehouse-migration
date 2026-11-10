@@ -30,6 +30,7 @@ Classification expands to dependants; classification and job execution order
 selected units dependencies-first, breaking ties by registry order. Cleanup
 uses both lists: `--suffix pr_123 --units a,b` (or `*`) drops dev objects only;
 `--prod` drops all registered objects without destroying schemas. Object types
-determine DROP syntax; pipeline-managed objects are skipped for pipeline teardown.
+determine DROP syntax; pipeline-managed objects are skipped, so units backed by a
+Lakeflow pipeline must full-refresh it on the D0 run (reruns then start clean).
 
 Silver/Gold builders: add your entry; bronze tables already owned by the bronze unit must not be re-listed — depend on that unit instead.
