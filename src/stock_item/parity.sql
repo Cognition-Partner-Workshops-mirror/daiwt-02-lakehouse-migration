@@ -55,4 +55,10 @@ SELECT CASE WHEN
  AND (SELECT count(*) FROM actual) = (SELECT count(*) FROM expected)
  AND (SELECT count(*) FROM IDENTIFIER(:catalog || '.' || :silver_schema || '.stock_item_changes_quarantine')) = 0
  THEN 'PASS: Stock Item strict multiset parity and empty quarantine'
- ELSE raise_error('S05 Stock Item parity/quarantine mismatch') END AS parity;
+ ELSE raise_error('S05 Stock Item parity/quarantine mismatch') END AS parity,
+ :drop AS drop_name,
+ (SELECT count(*) FROM actual) AS actual_count,
+ (SELECT count(*) FROM expected) AS expected_count,
+ (SELECT count(*) FROM missing) AS missing_count,
+ (SELECT count(*) FROM extra) AS extra_count,
+ (SELECT count(*) FROM IDENTIFIER(:catalog || '.' || :silver_schema || '.stock_item_changes_quarantine')) AS quarantine_count;
