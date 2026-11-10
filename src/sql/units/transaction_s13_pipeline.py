@@ -8,13 +8,13 @@ with open(spark.conf.get('s13.golden_path') + '/manifest.json') as stream:
 bronze = f"`{spark.conf.get('s13.catalog')}`.`{spark.conf.get('s13.bronze_schema')}`"
 
 
-@dp.materialized_view(name='transaction_changes', table_properties={'delta.columnMapping.mode': 'name'})
+@dp.materialized_view(name='transaction_changes', table_properties={'delta.columnMapping.mode': 'name', 'delta.feature.timestampNtz': 'supported'})
 @dp.expect_all(EXPECTATIONS)
 def transaction_changes():
     return spark.sql(extract_sql(bronze, drops))
 
 
-@dp.materialized_view(name='transaction_quarantine', table_properties={'delta.columnMapping.mode': 'name'})
+@dp.materialized_view(name='transaction_quarantine', table_properties={'delta.columnMapping.mode': 'name', 'delta.feature.timestampNtz': 'supported'})
 def transaction_quarantine():
     failures = ' OR '.join(f'NOT coalesce(({rule}), false)' for name, rule in EXPECTATIONS.items() if name != 'totals')
     return spark.read.table('transaction_changes').where(failures)
