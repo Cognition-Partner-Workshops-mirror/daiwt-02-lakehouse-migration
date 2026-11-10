@@ -14,16 +14,10 @@ resources:
         source_catalog: ${var.catalog}
         bronze_schema: ${var.bronze_schema}
         silver_schema: ${var.silver_schema}
-      permissions:
-        - level: CAN_VIEW
-          group_name: users
   jobs:
     wwi_customer_to_silver:
       name: ${var.job_name_prefix}wwi_customer_to_silver
       max_concurrent_runs: 1
-      permissions:
-        - level: CAN_VIEW
-          group_name: users
       parameters:
         - name: drop
           default: ${var.drop}
