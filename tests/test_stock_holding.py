@@ -150,7 +150,7 @@ def test_registry_and_classification():
                  "src/s12/stock_holding_pipeline.py", "src/s12/verify_stock_holding.py",
                  "resources/stock_holding.yml"):
         assert unit in classify(registry, [path])
-    assert run(None, "daiwt_02_mig_dev", "pr_15", "unused", registry)["status"] == "PASS"
+    assert run(None, "daiwt_02_mig_dev", "pr_15", "unused", {unit: registry[unit]})["status"] == "PASS"
 
 
 def test_query_uses_complete_drops_and_safe_identifiers():
