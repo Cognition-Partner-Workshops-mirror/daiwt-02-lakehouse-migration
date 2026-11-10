@@ -207,6 +207,12 @@ def reference_sort_key(table):
 
 # Spark job.
 
+def cutoff_map(cutoffs, tables=()):
+    if isinstance(cutoffs, str):
+        return {name: cutoffs for name in tables}
+    return {c["Table Name"]: c["Cutoff Time"] for c in cutoffs}
+
+
 class Replay:
     def __init__(self, spark, catalog, schema, golden_path, spec, drop, cutoffs):
         self.spark, self.spec, self.drop, self.cutoffs = spark, spec, drop, cutoffs
@@ -245,21 +251,21 @@ class Replay:
             raise ValueError(f"Drop {self.drop} is not in the golden manifest")
         if index == 0:
             return
-        applied = self.sql(f"SELECT drop, count_if(status = 'PASS') AS passed, count(*) AS n "
+        applied = self.sql(f"SELECT drop, count_if(status = 'PASS') AS passed "
                            f"FROM {self.fqn(LOG_TABLE)} GROUP BY drop").collect()
-        done = {r["drop"]: (r["passed"], r["n"]) for r in applied}
+        done = {r["drop"]: r["passed"] for r in applied}
         previous = f"D{index - 1}"
         if self.drop in done:
-            raise ValueError(f"Drop {self.drop} was already applied; replay from D0")
-        if done.get(previous) != (len(self.spec["tables"]),) * 2 or any(drop_index(d) > index for d in done):
+            raise ValueError(f"Drop {self.drop} was already started; replay from D0")
+        if done.get(previous) != len(self.spec["tables"]) or any(drop_index(d) > index for d in done):
             raise ValueError(f"Drop {self.drop} requires {previous} to be the last fully applied drop")
 
     def reset(self):
         from pyspark.sql.types import IntegerType, StringType, StructField, StructType
         rows = []
         for d in self.manifest["drops"]:
-            last = {c["Table Name"]: c["Cutoff Time"] for c in d["last_cutoff"]}
-            new = {c["Table Name"]: c["Cutoff Time"] for c in d["new_cutoff"]}
+            last = cutoff_map(d["last_cutoff"])
+            new = cutoff_map(d["new_cutoff"], last)
             for name in sorted(new):
                 rows.append((d["name"], drop_index(d["name"]), d["window_start"], d["window_end"],
                              name, last.get(name), new[name]))
@@ -335,14 +341,20 @@ class Replay:
                 upsert_rows, deleted_rows, meta["full_row_count"], actual_rows, meta["full_sha256"], actual_sha,
                 "PASS" if ok else "FAIL", self.cutoffs[0], self.cutoffs[1], self.ingested_at)
 
+    def log(self, rows):
+        schema = self.spark.table(self.fqn(LOG_TABLE)).schema
+        self.spark.createDataFrame(rows, schema).write.mode("append").saveAsTable(self.fqn(LOG_TABLE))
+
     def run(self, workers=8):
         self.guard()
         if self.drop == "D0":
             self.reset()
+        else:
+            self.log([(self.drop, drop_index(self.drop)) + (None,) * 9
+                      + ("STARTED", self.cutoffs[0], self.cutoffs[1], self.ingested_at)])
         with ThreadPoolExecutor(workers) as pool:
             results = list(pool.map(self.apply, self.spec["tables"]))
-        log = self.spark.table(self.fqn(LOG_TABLE))
-        self.spark.createDataFrame(results, log.schema).write.mode("append").saveAsTable(self.fqn(LOG_TABLE))
+        self.log(results)
         for r in results:
             print(f"{r[11]} {r[0]} {r[3]}: upserts={r[5]} deletes={r[6]} rows={r[8]}/{r[7]} "
                   f"sha256={'OK' if r[10] == r[9] else r[10]}", flush=True)

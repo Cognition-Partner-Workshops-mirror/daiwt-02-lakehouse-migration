@@ -134,3 +134,11 @@ def test_drop_validation():
     assert bronze.drop_index("D2") == 2
     with pytest.raises(ValueError):
         bronze.drop_index("D2; DROP")
+
+
+def test_cutoff_map_accepts_manifest_shapes():
+    manifest = json.loads((ROOT / "golden" / "manifest.json").read_text())
+    for d in manifest["drops"]:
+        last = bronze.cutoff_map(d["last_cutoff"])
+        new = bronze.cutoff_map(d["new_cutoff"], last)
+        assert last and set(new) == set(last)
