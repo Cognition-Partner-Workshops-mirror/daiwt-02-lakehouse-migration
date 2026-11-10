@@ -161,8 +161,9 @@ def test_cleanup_scoping():
     assert list(candidates(schemas, None)) == ["gold_pr_1", "bronze_pr_2", "pr_4_silver_pr_4"]
 
 
-def test_zero_units_and_bundle_targets():
-    assert json.loads((ROOT / "src/sql/units/registry.json").read_text()) == {}
+def test_registry_and_bundle_targets():
+    registry = json.loads((ROOT / "src/sql/units/registry.json").read_text())
+    assert all(set(spec) >= {"job", "outputs"} for spec in registry.values())
     bundle = yaml.safe_load((ROOT / "databricks.yml").read_text())
     assert "resources" not in bundle["targets"]["prod"]
     assert set(bundle["targets"]["dev"]["resources"]["schemas"]) == {"bronze", "silver", "gold"}

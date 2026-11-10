@@ -1,6 +1,9 @@
 bundle:
   name: daiwt-02-migration
 
+include:
+  - resources/*.yml
+
 variables:
   drop:
     description: Runner overrides this per drop at run time.
