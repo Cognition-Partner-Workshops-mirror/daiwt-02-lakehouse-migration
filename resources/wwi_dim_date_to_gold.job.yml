@@ -3,9 +3,6 @@ resources:
     wwi_dim_date_to_gold:
       name: ${var.job_name_prefix}wwi_dim_date_to_gold
       max_concurrent_runs: 1
-      permissions:
-        - group_name: users
-          level: CAN_VIEW
       parameters:
         - name: drop
           default: ${var.drop}
