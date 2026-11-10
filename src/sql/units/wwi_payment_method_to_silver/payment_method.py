@@ -8,36 +8,18 @@ END = '9999-12-31 23:59:59.9999999'
 DROPS = ('D0', 'D1', 'D2')
 
 
+def window(drop, last_cutoff, new_cutoff):
+    if drop == 'D0':
+        last_cutoff = '2012-12-31 00:00:00.0000000'
+    if drop not in DROPS or not last_cutoff or not new_cutoff or last_cutoff >= new_cutoff:
+        raise ValueError('Invalid drop or cutoff window')
+    return drop, last_cutoff, new_cutoff
+
+
 def read_csv(path):
     with Path(path).open(newline='', encoding='utf-8-sig') as stream:
         return [{key: None if value == r'\N' else value for key, value in row.items()}
                 for row in csv.DictReader(stream)]
-
-
-def replay(root, drop, archive=False):
-    name = 'PaymentMethods_Archive' if archive else 'PaymentMethods'
-    snapshot = []
-    audit = []
-    for current in DROPS[:DROPS.index(drop) + 1]:
-        path = Path(root) / 'inputs' / current / f'WideWorldImporters.Application.{name}.csv'
-        deleted_path = path.with_suffix('.deleted.csv')
-        deleted = read_csv(deleted_path) if deleted_path.exists() else []
-        incoming = read_csv(path)
-        for row in deleted:
-            matches = [i for i, old in enumerate(snapshot)
-                       if old == row or (not archive and old['PaymentMethodID'] == row['PaymentMethodID'])]
-            if not matches:
-                raise ValueError('Delete does not match a source row')
-            snapshot.pop(matches[0])
-        if not archive:
-            keys = {row['PaymentMethodID'] for row in incoming}
-            snapshot = [row for row in snapshot if row['PaymentMethodID'] not in keys]
-        snapshot.extend(incoming)
-        for op, rows, source in [('delete', deleted, deleted_path),
-                                 ('base' if current == 'D0' else 'upsert', incoming, path)]:
-            audit.extend({**row, '_drop': current, '_op': op, '_source_file': str(source),
-                          '_row_ordinal': str(i)} for i, row in enumerate(rows, 1))
-    return snapshot, audit
 
 
 def changes(history, last_cutoff, new_cutoff):

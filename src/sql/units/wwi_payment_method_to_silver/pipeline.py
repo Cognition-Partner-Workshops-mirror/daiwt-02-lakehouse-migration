@@ -3,6 +3,7 @@ from pyspark.sql import functions as F
 
 catalog = spark.conf.get('payment_method.catalog')
 bronze = spark.conf.get('payment_method.bronze_schema')
+silver = spark.conf.get('payment_method.silver_schema')
 quality = {
     'business_key': 'wwi_payment_method_id IS NOT NULL AND wwi_payment_method_id > 0',
     'name': 'payment_method IS NOT NULL AND length(payment_method) BETWEEN 1 AND 50',
@@ -15,14 +16,14 @@ quality = {
 def payment_method_changes():
     return spark.sql(f"""
         WITH history AS (
-            SELECT PaymentMethodID, PaymentMethodName, ValidFrom, ValidTo
+            SELECT PaymentMethodID, PaymentMethodName, ValidFrom_str AS ValidFrom, ValidTo_str AS ValidTo
             FROM {catalog}.{bronze}.application_payment_methods
             UNION ALL
-            SELECT PaymentMethodID, PaymentMethodName, ValidFrom, ValidTo
+            SELECT PaymentMethodID, PaymentMethodName, ValidFrom_str AS ValidFrom, ValidTo_str AS ValidTo
             FROM {catalog}.{bronze}.application_payment_methods_archive
         ), events AS (
             SELECT h.PaymentMethodID, h.ValidFrom
-            FROM history h CROSS JOIN {catalog}.{bronze}.payment_method_window w
+            FROM history h CROSS JOIN {catalog}.{silver}.payment_method_window w
             WHERE h.ValidFrom > w.last_cutoff AND h.ValidFrom <= w.new_cutoff
         ), staged AS (
             SELECT h.PaymentMethodID AS wwi_payment_method_id,

@@ -12,6 +12,7 @@ resources:
       configuration:
         payment_method.catalog: ${var.catalog}
         payment_method.bronze_schema: ${var.bronze_schema}
+        payment_method.silver_schema: ${var.silver_schema}
       permissions:
         - group_name: users
           level: CAN_VIEW
@@ -24,22 +25,21 @@ resources:
           level: CAN_VIEW
       parameters:
         - name: drop
-          default: D0
+          default: ${var.drop}
         - name: last_cutoff
-          default: '2012-12-31 00:00:00.0000000'
+          default: ${var.last_cutoff}
         - name: new_cutoff
-          default: '2016-06-06 12:31:17.0000000'
+          default: ${var.new_cutoff}
       tasks:
-        - task_key: bronze
+        - task_key: window
           notebook_task:
-            notebook_path: ../src/sql/units/wwi_payment_method_to_silver/bronze.py
+            notebook_path: ../src/sql/units/wwi_payment_method_to_silver/window.py
             base_parameters:
               catalog: ${var.catalog}
-              bronze_schema: ${var.bronze_schema}
-              golden_path: ${var.golden_path}
+              silver_schema: ${var.silver_schema}
         - task_key: silver
           depends_on:
-            - task_key: bronze
+            - task_key: window
           pipeline_task:
             pipeline_id: ${resources.pipelines.payment_method_silver.id}
             full_refresh: true

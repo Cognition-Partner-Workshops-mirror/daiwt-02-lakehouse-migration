@@ -14,12 +14,15 @@ compares its five versions with the D0 dimension excluding the unknown member.
 D1 and D2 compare to new/changed golden dimension rows, and both are empty.
 The job runs this multiset parity check after each successful pipeline update.
 
-The bronze notebook is a unit-scoped replay adapter pending P4. It reconstructs
-the requested snapshot from the immutable input chain, preserving archive
-multiplicity and applying deletes before upserts. Raw audit rows are append-only
-and retries do not duplicate already landed drops. The pipeline's history CTE
-is the temporary P6 adapter. Replace both with merged Platform interfaces before
-merge. No gold tables are owned or written by this unit.
+Platform `bronze_landing_replay` owns and replays all bronze inputs before S04.
+The pipeline reads its typed `application_payment_methods` and
+`application_payment_methods_archive` snapshots, using `ValidFrom_str` and
+`ValidTo_str` for exact timestamps. The pipeline's history CTE remains the
+temporary P6 adapter. S04 owns only its two Silver outputs and the unit-only
+`silver.payment_method_window` helper, which carries the runner's job parameters
+into the pipeline. For D0 that helper explicitly selects the full-history window
+described above rather than the manifest's equal baseline cutoffs.
+No bronze or gold tables are owned or written by this unit.
 
 Expectations warn without dropping rows; invalid staged rows are also copied to
 `payment_method_changes_quarantine`. Golden verification requires it to be empty.
