@@ -303,7 +303,7 @@ def main():
         from databricks.sdk import WorkspaceClient
         registry = json.loads(Path(args.registry).read_text())
         units = json.loads(Path(args.units).read_text()) if args.units is not None else None
-        client = WorkspaceClient(profile=args.profile) if any(
+        client = (WorkspaceClient(profile=args.profile) if args.profile else WorkspaceClient()) if any(
             spec["outputs"] for spec in registry.values()) else None
         result = run(client, args.catalog, args.suffix, args.warehouse_id, registry, args.drop, units=units)
     except Exception as exc:

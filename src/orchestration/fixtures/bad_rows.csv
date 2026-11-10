@@ -1,0 +1,4 @@
+wwi_customer_id,customer,valid_from,valid_to
+,Missing business key,2016-06-01 00:00:00,9999-12-31 23:59:59
+not_an_integer,Invalid business key,2016-06-01 00:00:00,9999-12-31 23:59:59
+1,Invalid validity window,2016-06-02 00:00:00,2016-06-01 00:00:00
