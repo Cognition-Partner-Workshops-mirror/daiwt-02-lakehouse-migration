@@ -80,7 +80,9 @@ def expected(root, drop):
     return rows(drop) - rows(previous)
 
 
-def change_sql(bronze, last, new):
+def change_sql(bronze, last=None, new=None, window_table=None):
+    lower = f'(SELECT last_cutoff FROM {window_table})' if window_table else f"'{last}'"
+    upper = f'(SELECT new_cutoff FROM {window_table})' if window_table else f"'{new}'"
     def history(table):
         return f'SELECT * FROM {bronze}.{table} UNION ALL SELECT * FROM {bronze}.{table}_archive'
     return f"""
@@ -89,10 +91,10 @@ c AS ({history('purchasing_supplier_categories')}),
 p AS ({history('application_people')}),
 events AS (
  SELECT 's' kind, SupplierID id, ValidFrom t FROM s
- WHERE ValidFrom > '{last}' AND ValidFrom <= '{new}'
+ WHERE ValidFrom > {lower} AND ValidFrom <= {upper}
  UNION ALL
  SELECT 'c', SupplierCategoryID, ValidFrom FROM c
- WHERE ValidFrom > '{last}' AND ValidFrom <= '{new}'
+ WHERE ValidFrom > {lower} AND ValidFrom <= {upper}
  AND ValidFrom <> '2020-01-01 00:00:00.0000000'
 ), staged AS (
  SELECT s.SupplierID wwi_supplier_id, s.SupplierName supplier,

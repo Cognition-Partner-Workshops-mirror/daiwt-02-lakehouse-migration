@@ -36,6 +36,7 @@ string comparisons. Swap its history CTEs for P6 views when available. `depends_
 is empty until those platform units have registry keys; owns lists every table.
 
 One pipeline owns the two silver outputs. Before each update the bronze task
-changes its `drop`, `last_cutoff`, and `new_cutoff` configuration, then the job
-refreshes it and checks parity. Runs are serialized. No deployment is needed for
+overwrites the one-row `bronze.s06_supplier_run_window` control table with `drop`,
+`last_cutoff`, and `new_cutoff`; the pipeline reads that table without modifying
+its deployed configuration. The job refreshes it and checks parity. Runs are serialized. No deployment is needed for
 the offline tests. Local SQL test requires PySpark 3.5 and JDK 17.

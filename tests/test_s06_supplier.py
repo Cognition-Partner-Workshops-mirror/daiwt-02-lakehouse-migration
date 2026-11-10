@@ -122,10 +122,8 @@ def test_expected_multiset_changes(tmp_path):
 
 @pytest.mark.parametrize('drop', ['D0', 'D2'])
 def test_bronze_notebook(monkeypatch, drop):
-    from databricks.sdk import WorkspaceClient
-    from databricks.sdk.service.pipelines import PipelineSpec
     monkeypatch.setitem(sys.modules, 'logic', logic)
-    saved, updates = {}, []
+    saved = {}
     class Frame:
         def __init__(self, rows, schema):
             self.rows, self.schema, self.write = rows, schema, self
@@ -135,23 +133,15 @@ def test_bronze_notebook(monkeypatch, drop):
             return self
         def saveAsTable(self, name):
             saved[name] = self.rows
-    class Pipelines:
-        def get(self, pipeline_id):
-            return SimpleNamespace(spec=PipelineSpec(name='S06', catalog='test', schema='silver',
-                                                    serverless=True, configuration={'s06.bronze': 'test.bronze'}))
-        def update(self, pipeline_id, *, name=None, configuration=None, catalog=None, schema=None, serverless=None):
-            updates.append((pipeline_id, configuration, catalog, schema, serverless))
-    monkeypatch.setattr('databricks.sdk.WorkspaceClient', lambda: SimpleNamespace(pipelines=Pipelines()))
     parameters = dict(catalog='test', bronze_schema='bronze', golden_path=str(ROOT / 'golden'),
-                      drop=drop, pipeline_id='123', last_cutoff='last', new_cutoff='new')
+                      drop=drop, last_cutoff='last', new_cutoff='new')
     widgets = SimpleNamespace(text=lambda *args: None, get=parameters.__getitem__)
     runpy.run_path(str(ROOT / 'src/sql/units/s06_supplier/bronze.py'), init_globals={
         'spark': SimpleNamespace(createDataFrame=Frame), 'dbutils': SimpleNamespace(widgets=widgets)})
-    assert len(saved) == 12
+    assert len(saved) == 13
     assert len(saved['test.bronze.purchasing_suppliers']) == 13
     assert len(saved['test.bronze.purchasing_suppliers_archive']) == 13
-    assert updates == [('123', {'s06.bronze': 'test.bronze', 'drop': drop,
-                                'last_cutoff': 'last', 'new_cutoff': 'new'}, 'test', 'silver', True)]
+    assert saved['test.bronze.s06_supplier_run_window'] == [(drop, 'last', 'new')]
 
 
 def test_spark_query_matches_walk():
@@ -168,7 +158,9 @@ def test_spark_query_matches_walk():
             schema = ','.join(f'{name} STRING' for name in rows[0])
             spark.createDataFrame([tuple(r.values()) for r in rows], schema).createOrReplaceTempView(table)
             spark.createDataFrame([], schema).createOrReplaceTempView(table + '_archive')
-        query = logic.change_sql('unused', '2015-12-31', '2016-02-01').replace('unused.', '')
+        spark.createDataFrame([('D1', '2015-12-31', '2016-02-01')],
+                              'drop STRING, last_cutoff STRING, new_cutoff STRING').createOrReplaceTempView('run_window')
+        query = logic.change_sql('unused', window_table='run_window').replace('unused.', '')
         actual = Counter(tuple(r[c] for c in logic.COLUMNS) for r in spark.sql(query).collect())
         assert actual == Counter(logic.walk(suppliers, categories, [p], '2015-12-31', '2016-02-01'))
         assert len(list(actual.elements())) == 3

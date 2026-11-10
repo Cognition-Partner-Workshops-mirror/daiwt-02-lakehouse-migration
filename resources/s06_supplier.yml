@@ -11,9 +11,6 @@ resources:
             path: ../src/sql/units/s06_supplier/pipeline.py
       configuration:
         s06.bronze: ${var.catalog}.${var.bronze_schema}
-        drop: D0
-        last_cutoff: '2016-06-06 12:31:17.0000000'
-        new_cutoff: '2016-06-06 12:31:17.0000000'
       permissions:
         - group_name: users
           level: CAN_VIEW
@@ -32,7 +29,6 @@ resources:
               catalog: ${var.catalog}
               bronze_schema: ${var.bronze_schema}
               golden_path: ${var.golden_path}
-              pipeline_id: ${resources.pipelines.s06_supplier_pipeline.id}
               drop: D0
               last_cutoff: '2016-06-06 12:31:17.0000000'
               new_cutoff: '2016-06-06 12:31:17.0000000'

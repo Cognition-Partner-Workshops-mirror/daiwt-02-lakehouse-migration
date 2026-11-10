@@ -4,11 +4,6 @@ from logic import change_sql
 
 spark = SparkSession.builder.getOrCreate()
 bronze = spark.conf.get('s06.bronze')
-last = spark.conf.get('last_cutoff')
-new = spark.conf.get('new_cutoff')
-drop = spark.conf.get('drop')
-if drop not in ('D0', 'D1', 'D2'):
-    raise ValueError('invalid drop')
 
 VALID = ('wwi_supplier_id IS NOT NULL AND supplier IS NOT NULL AND category IS NOT NULL '
          'AND primary_contact IS NOT NULL AND valid_from < valid_to '
@@ -19,7 +14,7 @@ VALID = ('wwi_supplier_id IS NOT NULL AND supplier IS NOT NULL AND category IS N
 @dp.materialized_view(name='supplier_changes')
 @dp.expect('supplier_values', VALID)
 def supplier_changes():
-    return spark.sql(change_sql(bronze, last, new)).replace('\\N', None)
+    return spark.sql(change_sql(bronze, window_table=f'{bronze}.s06_supplier_run_window')).replace('\\N', None)
 
 
 @dp.materialized_view(name='supplier_changes_quarantine')

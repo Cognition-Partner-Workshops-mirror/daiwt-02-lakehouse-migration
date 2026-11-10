@@ -1,14 +1,11 @@
 # Databricks notebook source
 import csv
-import dataclasses
 from datetime import datetime, timezone
-import inspect
 from pathlib import Path
-from databricks.sdk import WorkspaceClient
 
 from logic import SOURCES, read_csv, replay
 
-for name in ('catalog', 'bronze_schema', 'golden_path', 'drop', 'pipeline_id', 'last_cutoff', 'new_cutoff'):
+for name in ('catalog', 'bronze_schema', 'golden_path', 'drop', 'last_cutoff', 'new_cutoff'):
     dbutils.widgets.text(name, '')
 catalog, schema, root, drop = [dbutils.widgets.get(n) for n in
                               ('catalog', 'bronze_schema', 'golden_path', 'drop')]
@@ -49,13 +46,6 @@ for source, (table, key) in SOURCES.items():
     spark.createDataFrame(raw, ddl + ', `_operation` STRING').write.mode('overwrite').option(
         'overwriteSchema', 'true').saveAsTable(f'{catalog}.{schema}.s06_supplier_raw_{table}')
 
-client = WorkspaceClient()
-pipeline_id = dbutils.widgets.get('pipeline_id')
-spec = client.pipelines.get(pipeline_id).spec
-configuration = dict(spec.configuration or {})
-configuration.update({name: dbutils.widgets.get(name) for name in ('drop', 'last_cutoff', 'new_cutoff')})
-accepted = inspect.signature(client.pipelines.update).parameters
-settings = {field.name: getattr(spec, field.name) for field in dataclasses.fields(spec)
-            if field.name in accepted and field.name != 'pipeline_id'}
-settings['configuration'] = configuration
-client.pipelines.update(pipeline_id=pipeline_id, **settings)
+spark.createDataFrame([(drop, dbutils.widgets.get('last_cutoff'), dbutils.widgets.get('new_cutoff'))],
+                      'drop STRING, last_cutoff STRING, new_cutoff STRING').write.mode(
+    'overwrite').saveAsTable(f'{catalog}.{schema}.s06_supplier_run_window')
