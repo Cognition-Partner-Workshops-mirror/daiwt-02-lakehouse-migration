@@ -12,6 +12,7 @@ resources:
       configuration:
         sale.catalog: ${var.catalog}
         sale.bronze_schema: ${var.bronze_schema}
+        sale.source_path: ${workspace.file_path}/src
   jobs:
     wwi_sale_to_silver:
       name: ${var.job_name_prefix}wwi_sale_to_silver

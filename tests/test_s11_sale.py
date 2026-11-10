@@ -1,5 +1,7 @@
 import json
 import re
+import sys
+from types import SimpleNamespace
 from pathlib import Path
 
 import pytest
@@ -103,6 +105,23 @@ def test_registry_and_replay_bundle():
     child_params = {p["name"] for p in resources["jobs"]["wwi_sale_drop"]["parameters"]}
     assert child_params.isdisjoint(p["name"] for p in parent["parameters"])
     assert set(tasks["d0"]["run_job_task"]["job_parameters"]) == child_params
+
+
+def test_pipeline_registration_without_file_global(monkeypatch):
+    def decorator(*args, **kwargs):
+        return lambda function: function
+
+    dp = SimpleNamespace(temporary_view=decorator, materialized_view=decorator, expect=decorator)
+    monkeypatch.setitem(sys.modules, "pyspark", SimpleNamespace(pipelines=dp))
+    monkeypatch.setitem(sys.modules, "pyspark.sql", SimpleNamespace(functions=SimpleNamespace()))
+    settings = {"sale.source_path": str(ROOT / "src"), "sale.catalog": "daiwt_02_mig_dev",
+                "sale.bronze_schema": "bronze_pr_20"}
+    globals_ = {"spark": SimpleNamespace(conf=SimpleNamespace(get=settings.__getitem__))}
+    path = ROOT / "src/s11_sale/pipeline.py"
+    exec(compile(path.read_text(), str(path), "exec"), globals_)
+    assert callable(globals_["sale_changes"])
+    assert callable(globals_["sale_changes_quarantine"])
+    assert globals_["properties"]["delta.feature.timestampNtz"] == "supported"
 
 
 @pytest.fixture(scope="module")
