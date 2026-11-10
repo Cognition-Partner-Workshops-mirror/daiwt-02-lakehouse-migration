@@ -8,7 +8,7 @@ import pytest
 import yaml
 
 from attest import render
-from classify_changes import classify, expand
+from classify_changes import classify, classify_diff, expand
 from check_attestation import evaluate
 from drops import DROPS, drop_params
 from cleanup import candidates
@@ -189,7 +189,6 @@ def test_workflow_oidc_environments():
     ("src/sql/units/a/query.sql", ["a", "b", "c"]),
     ("resources/a.job.yml", ["a", "b", "c"]),
     ("ci/drops.py", ["a", "b", "c", "z"]),
-    ("src/sql/units/registry.json", ["a", "b", "c", "z"]),
     ("docs/readme.md", []), ("tests/test_ci.py", []), ("README.md", []), (".github/workflows/pr.yml", [])])
 def test_selection(path, expected):
     registry = {"c": {"depends_on": ["b"]}, "a": {}, "b": {"depends_on": ["a"]}, "z": {}}
@@ -203,6 +202,60 @@ def test_expand():
     assert expand(registry, []) == []
     with pytest.raises(ValueError):
         expand(registry, ["unknown"])
+
+
+@pytest.mark.parametrize("change,expected", [
+    ("changed", ["a", "b", "c"]),
+    ("added", ["a", "b", "c"]),
+    ("unchanged", []),
+    ("removed", []),
+])
+def test_registry_entry_selection(change, expected):
+    registry = {"c": {"depends_on": ["b"]}, "a": {},
+                "b": {"depends_on": ["a"]}, "downstream": {"depends_on": ["c"]}, "z": {}}
+    base = json.loads(json.dumps(registry))
+    if change == "changed":
+        base["c"]["job"] = "old_job"
+    elif change == "added":
+        del base["c"]
+    elif change == "removed":
+        base["removed"] = {}
+    assert classify(registry, ["src/sql/units/registry.json"], base) == expected
+
+
+def test_registry_selection_mixed_paths():
+    base = {"a": {}, "b": {"depends_on": ["a"]}, "c": {"depends_on": ["b"]}, "z": {}}
+    registry = dict(base, b={"depends_on": ["a"], "job": "new"})
+    assert classify(registry, ["src/sql/units/registry.json", "src/sql/units/c.sql"], base) == ["a", "b", "c"]
+    assert classify(registry, ["src/sql/units/registry.json", "ci/drops.py"], base) == ["a", "b", "c", "z"]
+    with pytest.raises(ValueError, match="base registry required"):
+        classify(registry, ["src/sql/units/registry.json"])
+
+
+def test_registry_diff_simulation(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    registry_path = tmp_path / "src/sql/units/registry.json"
+    registry_path.parent.mkdir(parents=True)
+    contract_path = tmp_path / "src/parity/contract.json"
+    contract_path.parent.mkdir(parents=True)
+    contract_path.write_text((ROOT / "src/parity/contract.json").read_text())
+    registry = json.loads((ROOT / "src/sql/units/registry.json").read_text())
+    registry_path.write_text(json.dumps(registry))
+    subprocess.run(["git", "add", "src"], check=True)
+    commit = ["git", "-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-qm"]
+    subprocess.run(commit + ["base"], check=True)
+    base = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+    registry["new_entry"] = {"job": "new_job", "outputs": [], "owns": [],
+                             "depends_on": ["bronze_landing_replay"]}
+    registry_path.write_text(json.dumps(registry))
+    subprocess.run(["git", "add", "src/sql/units/registry.json"], check=True)
+    subprocess.run(commit + ["add entry"], check=True)
+    expected = ["bronze_landing_replay", "new_entry"]
+    assert classify_diff(registry, base, "HEAD") == expected
+    result = subprocess.check_output([sys.executable, str(ROOT / "ci/classify_changes.py"), base, "HEAD"], text=True)
+    assert json.loads(result) == expected
+    print("Simulated registry-only addition: " + result.strip())
 
 
 def test_real_drop_params():

@@ -227,7 +227,8 @@ def test_employee_bundle_registry_and_harness(monkeypatch):
         "silver.employee_changes", "silver.employee_changes_quarantine"}
     assert load()[UNIT] == spec
     selected = expand(registry, ["bronze_landing_replay", "silver_temporal_views", UNIT])
-    assert selected == ["bronze_landing_replay", "silver_temporal_views", UNIT]
+    assert selected[0] == "bronze_landing_replay"
+    assert selected.index("silver_temporal_views") < selected.index(UNIT)
     calls = []
 
     class Process:

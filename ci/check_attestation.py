@@ -4,7 +4,7 @@ import json
 import subprocess
 from pathlib import Path
 
-from classify_changes import classify
+from classify_changes import classify_diff
 from drops import DROPS
 from registry import validate
 from record_attestation import COLUMNS, TABLE, Warehouse, table_name
@@ -46,12 +46,13 @@ def main():
         registry = json.loads(subprocess.check_output(["git", "show", f"{args.head_sha}:src/sql/units/registry.json"], text=True))
         contract = json.loads(subprocess.check_output(["git", "show", f"{args.head_sha}:src/parity/contract.json"], text=True))
         validate(registry, contract["outputs"])
-        paths = subprocess.check_output(["git", "diff", "--name-only", f"{args.base_sha}...{args.head_sha}"], text=True).splitlines()
+        base = subprocess.check_output(["git", "merge-base", args.base_sha, args.head_sha], text=True).strip()
+        required_units = classify_diff(registry, base, args.head_sha)
         warehouse = Warehouse(WorkspaceClient(), "6dc4b80538621b7b")
         data = warehouse.sql(f"SELECT {', '.join(COLUMNS)} FROM {table_name(args.table)} WHERE head_sha = :head AND suffix = :suffix ORDER BY recorded_at DESC",
                              {"head": args.head_sha, "suffix": args.suffix})
         rows = [dict(zip(COLUMNS, row)) for row in data]
-        ok, reason = evaluate(rows, args.head_sha, args.suffix, classify(registry, paths))
+        ok, reason = evaluate(rows, args.head_sha, args.suffix, required_units)
     except Exception as exc:
         ok, reason = False, f"attestation query or selection failed: {exc}"
     body = f"# DAIWT-02 attestation\n\n**FAIL** — {reason}\n"

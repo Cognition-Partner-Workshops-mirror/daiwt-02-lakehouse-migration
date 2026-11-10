@@ -141,6 +141,32 @@ def test_registered_pass_and_sql():
     assert "LIMIT" not in sql
 
 
+def test_unselected_producer_skips_without_queries():
+    warehouse = FakeWarehouse(error="TABLE_OR_VIEW_NOT_FOUND")
+    result = execute(warehouse=warehouse, units=[])
+    row = next(r for r in result["results"] if r["table"] == TABLE)
+    assert row["status"] == "SKIP" and row["reason"] == "producer not selected"
+    assert result["counts"] == {"PASS": 0, "FAIL": 0, "SKIP": 18}
+    assert not warehouse.statements
+
+
+@pytest.mark.parametrize("units", [None, ["framework"]])
+def test_selected_or_default_missing_producer_fails(units):
+    result = execute(warehouse=FakeWarehouse(error="TABLE_OR_VIEW_NOT_FOUND"), units=units)
+    row = next(r for r in result["results"] if r["table"] == TABLE)
+    assert row["status"] == "FAIL" and "missing table" in row["reason"]
+
+
+def test_selected_producer_compared():
+    assert execute(units=["framework"])["counts"] == {"PASS": 1, "FAIL": 0, "SKIP": 17}
+
+
+@pytest.mark.parametrize("units", ["framework", [1], ["unknown"], {}])
+def test_invalid_selected_units(units):
+    with pytest.raises(ValueError, match="[Ss]elected units"):
+        execute(units=units)
+
+
 @pytest.mark.parametrize("error,reason", [
     ("TABLE_OR_VIEW_NOT_FOUND", "missing table"), ("permission denied", "permission denied"),
 ])

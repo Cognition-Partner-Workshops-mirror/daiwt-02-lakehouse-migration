@@ -237,13 +237,18 @@ def verify_golden(client, golden_path, entry):
 
 
 def run(client, catalog, suffix, warehouse_id, registry, drop="D2", *,
-        contract=None, warehouse=None, schema_override=None, golden_verifier=None):
+        contract=None, warehouse=None, schema_override=None, golden_verifier=None, units=None):
     if catalog not in ("daiwt_02_mig_dev", "daiwt_02_mig_prod"):
         raise ValueError("Unsupported catalog")
     if catalog.endswith("_dev") and not re.fullmatch(r"pr_[0-9]+", suffix):
         raise ValueError("Dev suffix must match ^pr_[0-9]+$")
     if schema_override and catalog != "daiwt_02_mig_dev":
         raise ValueError("Schema override is dev-only")
+    if units is not None:
+        if not isinstance(units, list) or not all(isinstance(unit, str) for unit in units):
+            raise ValueError("Selected units must be a list of unit names")
+        if set(units) - registry.keys():
+            raise ValueError("Unknown selected units: " + ", ".join(sorted(set(units) - registry.keys())))
     contract = contract if contract is not None else json.loads((ROOT / "src/parity/contract.json").read_text())
     entries = select_entries(contract, drop)
     producers = {}
@@ -259,6 +264,10 @@ def run(client, catalog, suffix, warehouse_id, registry, drop="D2", *,
                    golden_rows=None, actual_rows=None, missing_rows=None, extra_rows=None)
         if entry["table"] in producers:
             row["unit"] = producers[entry["table"]]
+            if units is not None and row["unit"] not in units:
+                row["reason"] = "producer not selected"
+                results.append(row)
+                continue
             try:
                 verifier = golden_verifier if golden_verifier is not None else verify_golden
                 verifier(client, contract["golden_path"], entry)
@@ -284,6 +293,7 @@ def main():
     parser.add_argument("--warehouse-id", default="6dc4b80538621b7b")
     parser.add_argument("--profile")
     parser.add_argument("--registry", default=str(ROOT / "src/sql/units/registry.json"))
+    parser.add_argument("--units")
     parser.add_argument("--output", default="out/parity.json")
     args = parser.parse_args()
     output = Path(args.output)
@@ -292,9 +302,10 @@ def main():
     try:
         from databricks.sdk import WorkspaceClient
         registry = json.loads(Path(args.registry).read_text())
+        units = json.loads(Path(args.units).read_text()) if args.units is not None else None
         client = WorkspaceClient(profile=args.profile) if any(
             spec["outputs"] for spec in registry.values()) else None
-        result = run(client, args.catalog, args.suffix, args.warehouse_id, registry, args.drop)
+        result = run(client, args.catalog, args.suffix, args.warehouse_id, registry, args.drop, units=units)
     except Exception as exc:
         result = dict(status="FAIL", drop=args.drop, catalog=args.catalog, suffix=args.suffix,
                       goldens=0, counts=dict(PASS=0, FAIL=0, SKIP=0), compared=0, results=[], error=str(exc))

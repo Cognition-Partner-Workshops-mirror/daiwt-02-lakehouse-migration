@@ -17,15 +17,14 @@ if ! python - "${2:-}" > out/selected-units.json <<'PY'
 import json, re, subprocess, sys
 from pathlib import Path
 sys.path.insert(0, "ci")
-from classify_changes import classify, expand
+from classify_changes import classify_diff, expand
 from registry import load
 registry = load()
 if sys.argv[1]:
     units = expand(registry, re.split(r"[,\s]+", sys.argv[1].strip()))
 else:
     base = subprocess.check_output(["git", "merge-base", "origin/main", "HEAD"], text=True).strip()
-    paths = subprocess.check_output(["git", "diff", "--name-only", base, "HEAD"], text=True).splitlines()
-    units = classify(registry, paths)
+    units = classify_diff(registry, base, "HEAD")
 print(json.dumps(units))
 PY
 then
@@ -45,7 +44,7 @@ fi
 if [[ $status == PASS ]]; then
   for D in D0 D1 D2; do
     if ! python ci/run_units.py "$suffix" out/selected-units.json --drop "$D" --run-urls out/run-urls.txt ||
-       ! python src/parity/parity_check.py --suffix "$suffix" --drop "$D" --output "out/parity-$D.json"; then
+       ! python src/parity/parity_check.py --suffix "$suffix" --drop "$D" --units out/selected-units.json --output "out/parity-$D.json"; then
       status=FAIL
       break
     fi
