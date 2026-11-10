@@ -33,8 +33,8 @@ def run(spark, contract, *, catalog, gold_schema, silver_schema, golden_path,
     properties = dict(spark.sql(f"SHOW TBLPROPERTIES {table}").collect())
     if drop == "D1" and "g08.D2" in properties:
         raise ValueError("Replay requires the preceding drop; restore D0 first")
-    if drop == "D2" and "g08.D1" not in properties:
-        raise ValueError("Replay requires the preceding drop")
+    if drop == "D2" and not json.loads(properties.get("g08.D1", "{}")).get("complete", False):
+        raise ValueError("Replay requires the preceding drop to be complete")
     lineage = Integration(spark, catalog, gold_schema).start_lineage("Transaction Type", new_cutoff)
     stage = "g08_transaction_type_stage"
     source = relation(f"{catalog}.{silver_schema}.transaction_type_changes")
@@ -50,6 +50,8 @@ WHERE valid_from > {cutoff_literal(last_cutoff)} AND valid_from <= {cutoff_liter
         checkpoint = json.loads(properties[property_name])
         if (checkpoint["last_cutoff"], checkpoint["new_cutoff"], checkpoint["count"]) != (last_cutoff, new_cutoff, count):
             raise ValueError("Replay requires the original window and immutable stage")
+        checkpoint["complete"] = False
+        spark.sql(f"ALTER TABLE {table} SET TBLPROPERTIES ({literal(property_name)} = {literal(json.dumps(checkpoint))})").collect()
         spark.sql(f"INSERT OVERWRITE TABLE {table} SELECT * FROM {table} VERSION AS OF {int(checkpoint['version'])}").collect()
     else:
         if drop == "D2" and json.loads(properties["g08.D1"])["new_cutoff"] != last_cutoff:
@@ -58,7 +60,7 @@ WHERE valid_from > {cutoff_literal(last_cutoff)} AND valid_from <= {cutoff_liter
         _, boundary = allocate_keys(hwm, count)
         version = int(spark.sql(f"DESCRIBE HISTORY {table} LIMIT 1").first()["version"])
         checkpoint = dict(version=version, high_water_mark=hwm, boundary=boundary,
-                          count=count, last_cutoff=last_cutoff, new_cutoff=new_cutoff)
+                          count=count, last_cutoff=last_cutoff, new_cutoff=new_cutoff, complete=False)
         spark.sql(f"ALTER TABLE {table} SET TBLPROPERTIES ({literal(property_name)} = {literal(json.dumps(checkpoint))})").collect()
     for statement in scd2(target, stage, key="transaction_type_key",
                           business_key="wwi_transaction_type_id",
@@ -66,6 +68,8 @@ WHERE valid_from > {cutoff_literal(last_cutoff)} AND valid_from <= {cutoff_liter
                           staging_order=["valid_from", "wwi_transaction_type_id", "valid_to", "transaction_type"],
                           key_high_water_mark=checkpoint["high_water_mark"]):
         spark.sql(statement).collect()
+    checkpoint["complete"] = True
+    spark.sql(f"ALTER TABLE {table} SET TBLPROPERTIES ({literal(property_name)} = {literal(json.dumps(checkpoint))})").collect()
 
 
 if __name__ == "__main__":

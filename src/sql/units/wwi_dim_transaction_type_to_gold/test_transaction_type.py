@@ -154,6 +154,37 @@ def test_all_versions_keys_minimum_close_and_partial_replay(spark):
         run(spark)
 
 
+@pytest.mark.parametrize("replay", [False, True])
+def test_failed_d1_blocks_d2_and_remains_replayable(spark, replay):
+    run(spark, "D0")
+    spark.stage = [(1, "Changed", NEW, END_OF_TIME)]
+    if replay:
+        run(spark)
+        assert json.loads(spark.properties["g08.D1"])["complete"] is True
+    spark.fail_insert = True
+    with pytest.raises(RuntimeError, match="insert interrupted"):
+        run(spark)
+    checkpoint = json.loads(spark.properties["g08.D1"])
+    assert checkpoint["complete"] is False
+    partial = spark.rows()
+    assert partial[1][4] == NEW
+    spark.window = ("D2", NEW, NEXT)
+    with pytest.raises(ValueError, match="preceding drop to be complete"):
+        run(spark, "D2", NEW, NEXT)
+    assert "g08.D2" not in spark.properties
+    assert spark.rows() == partial
+    spark.window = ("D1", LAST, NEW)
+    spark.fail_insert = False
+    run(spark)
+    completed = json.loads(spark.properties["g08.D1"])
+    assert completed == {**checkpoint, "complete": True}
+    assert spark.rows()[-1] == (15, 1, "Changed", NEW, END_OF_TIME, 20)
+    spark.window = ("D2", NEW, NEXT)
+    spark.stage = []
+    run(spark, "D2", NEW, NEXT)
+    assert json.loads(spark.properties["g08.D2"])["complete"] is True
+
+
 def test_invalid_inputs_stale_silver_and_changed_replay(spark):
     for kwargs in (dict(drop="D3"), dict(last="invalid"), dict(last=NEW, new=LAST)):
         with pytest.raises(ValueError):
