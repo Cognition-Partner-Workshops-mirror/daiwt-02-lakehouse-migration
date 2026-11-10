@@ -13,6 +13,7 @@ resources:
       configuration:
         source_catalog: ${var.catalog}
         bronze_schema: ${var.bronze_schema}
+        silver_schema: ${var.silver_schema}
       permissions:
         - level: CAN_VIEW
           group_name: users

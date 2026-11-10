@@ -3,6 +3,7 @@ from customer_logic import COLUMNS, extract_sql, window_sql
 
 catalog = spark.conf.get("source_catalog")
 bronze_schema = spark.conf.get("bronze_schema")
+silver_schema = spark.conf.get("silver_schema")
 checks = {
     "key_present": "wwi_customer_id IS NOT NULL",
     "valid_from_present": "valid_from IS NOT NULL",
@@ -13,7 +14,7 @@ checks = {
 @dp.materialized_view(name="customer_changes", comment="Customer extract; staging contract: Buying Group NOT NULL")
 @dp.expect_all(checks)
 def customer_changes():
-    return spark.sql(extract_sql(catalog, bronze_schema))
+    return spark.sql(extract_sql(catalog, bronze_schema, silver_schema=silver_schema))
 
 
 @dp.materialized_view(name="customer_changes_quarantine")

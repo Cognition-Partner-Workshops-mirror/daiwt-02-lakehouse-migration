@@ -16,7 +16,7 @@ def test_customer_registry():
     assert entry["job"] == "wwi_customer_to_silver"
     assert entry["outputs"] == []
     assert entry["owns"] == ["silver.customer_changes", "silver.customer_changes_quarantine"]
-    assert entry["depends_on"] == ["bronze_landing_replay"]
+    assert entry["depends_on"] == ["bronze_landing_replay", "silver_temporal_views"]
     platform = json.loads((ROOT / "src/bronze/tables.json").read_text())
     names = {t["source_table"]: t["table"] for t in platform["tables"]}
     assert all(table_name(t) == names[t] for t in TABLES)
@@ -49,13 +49,13 @@ def test_customer_unknown_drop(drop):
 def test_customer_sql_empty_window_and_precision():
     last, new = cutoffs(MANIFEST, "D0")
     sql = extract_sql("catalog", "bronze", last, new)
-    assert f"ValidFrom > '{last}' AND ValidFrom <= '{new}'" in sql
+    assert f"valid_from > '{last}' AND valid_from <= '{new}'" in sql
     assert "CAST(c.CustomerID AS INT)" in sql
     assert "AS TIMESTAMP" not in sql
     assert "9999-12-31 23:59:59.9999999" in sql
     assert "WHERE c.buying_group IS NOT NULL" in sql
     assert "SELECT DISTINCT wwi_customer_id, valid_from FROM changes" in sql
-    assert sql.count("ValidFrom <> '2020-01-01 00:00:00.0000000'") == 2
+    assert sql.count("valid_from <> '2020-01-01 00:00:00.0000000'") == 2
 
 
 @pytest.mark.parametrize("value", ["", "2016-06-06", "2016-06-06 00:00:00.12345678", "'; DROP TABLE t"])
@@ -83,11 +83,15 @@ def test_customer_control_window():
     assert "table_name = 'Customer'" in sql
     for column in ("last_cutoff", "new_cutoff"):
         assert f"concat(split_part({column}, '.', 1), '.', rpad(split_part({column}, '.', 2), 7, '0')) AS {column}" in sql
-    assert "ValidFrom > (SELECT last_cutoff FROM run_window)" in sql
-    assert "ValidFrom <= (SELECT new_cutoff FROM run_window)" in sql
+    assert "valid_from > (SELECT last_cutoff FROM run_window)" in sql
+    assert "valid_from <= (SELECT new_cutoff FROM run_window)" in sql
     assert not (ROOT / "src/units/customer/bronze.py").exists()
-    assert "ValidFrom_str AS ValidFrom" in sql
-    assert "ValidTo_str AS ValidTo" in sql
+    assert "valid_from_str" not in sql
+    for source in ("sales_customers", "sales_customer_categories", "sales_buying_groups", "application_people"):
+        assert f"`catalog`.`silver`.{source}_history" in sql
+        assert f"`catalog`.`silver`.{source}_asof(e.t)" in sql
+    assert "c.valid_from <= e.t" not in sql
+    assert "LEFT JOIN LATERAL" in sql
     assert "sales_customer_categories" in sql
     assert "sales_buying_groups" in sql
 
@@ -95,12 +99,12 @@ def test_customer_control_window():
 def test_customer_initial_load_date_parameter():
     sql = extract_sql("catalog", "bronze", "0001-01-01 00:00:00",
                       "2016-06-06 12:31:17", initial_load_date="2013-01-01")
-    assert sql.count("ValidFrom <> '2013-01-01 00:00:00.0000000'") == 2
+    assert sql.count("valid_from <> '2013-01-01 00:00:00.0000000'") == 2
     assert "2020-01-01" not in sql
     customer_events = sql.split("'customer' kind")[1].split(" UNION ALL ")[0]
-    assert "ValidFrom <>" not in customer_events
+    assert "valid_from <>" not in customer_events
     parity = (ROOT / "src/units/customer/parity.sql").read_text()
-    assert parity.count("ValidFrom <> '2013-01-01 00:00:00.0000000'") == 2
+    assert parity.count("valid_from <> '2013-01-01 00:00:00.0000000'") == 2
 
 
 @pytest.mark.parametrize("initial_load_date", ["", "2013-01-01'; DROP TABLE t", "2013/01/01"])

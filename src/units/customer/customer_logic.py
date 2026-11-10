@@ -40,59 +40,54 @@ def window_sql(catalog, bronze_schema):
             f"FROM `{catalog}`.`{bronze_schema}`.bronze_replay_log WHERE status = 'PASS')")
 
 
-def history_sql(catalog, bronze_schema):
+def history_sql(catalog, silver_schema):
     history = []
     for source in SOURCES:
         name = table_name(source)
         alias = source.replace(".", "_").lower()
-        projection = "* EXCEPT (ValidFrom, ValidTo), ValidFrom_str AS ValidFrom, ValidTo_str AS ValidTo"
-        history.append(f"{alias} AS (SELECT {projection} FROM `{catalog}`.`{bronze_schema}`.{name} "
-                       f"UNION ALL SELECT {projection} FROM `{catalog}`.`{bronze_schema}`.{name}_archive)")
+        history.append(f"{alias} AS (SELECT * FROM `{catalog}`.`{silver_schema}`.{name}_history)")
     return history
 
 
 def extract_sql(catalog, bronze_schema, last_cutoff=None, new_cutoff=None,
-                initial_load_date="2020-01-01"):
-    for name in (catalog, bronze_schema):
+                initial_load_date="2020-01-01", silver_schema="silver"):
+    for name in (catalog, bronze_schema, silver_schema):
         if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name):
             raise ValueError("Invalid catalog/schema")
     initial = datetime7(initial_load_date + " 00:00:00")
     history = []
     if last_cutoff is None and new_cutoff is None:
         history.append(f"run_window AS ({window_sql(catalog, bronze_schema)})")
-        window = "ValidFrom > (SELECT last_cutoff FROM run_window) AND ValidFrom <= (SELECT new_cutoff FROM run_window)"
+        window = "valid_from > (SELECT last_cutoff FROM run_window) AND valid_from <= (SELECT new_cutoff FROM run_window)"
     else:
         last, new = datetime7(last_cutoff), datetime7(new_cutoff)
         if last > new:
             raise ValueError("last_cutoff exceeds new_cutoff")
-        window = f"ValidFrom > '{last}' AND ValidFrom <= '{new}'"
-    history.extend(history_sql(catalog, bronze_schema))
+        window = f"valid_from > '{last}' AND valid_from <= '{new}'"
+    history.extend(history_sql(catalog, silver_schema))
     # SQL Server chooses the next strictly greater ValidFrom, even with duplicate events.
     prefix = "WITH " + ",\n".join(history)
     events = []
     for kind, table, key in (("customer", "sales_customers", "CustomerID"),
                              ("category", "sales_customercategories", "CustomerCategoryID"),
                              ("group", "sales_buyinggroups", "BuyingGroupID")):
-        exclude = "" if kind == "customer" else f" AND ValidFrom <> '{initial}'"
-        events.append(f"SELECT '{kind}' kind, {key} id, ValidFrom t FROM {table} WHERE {window}{exclude}")
-    return prefix + ", events AS (" + " UNION ALL ".join(events) + """), changes AS (
+        exclude = "" if kind == "customer" else f" AND valid_from <> '{initial}'"
+        events.append(f"SELECT '{kind}' kind, {key} id, valid_from t FROM {table} WHERE {window}{exclude}")
+    silver = f"`{catalog}`.`{silver_schema}`"
+    return prefix + ", events AS (" + " UNION ALL ".join(events) + f"""), changes AS (
  SELECT CAST(c.CustomerID AS INT) wwi_customer_id, c.CustomerName customer,
  bt.CustomerName bill_to_customer, cc.CustomerCategoryName category,
  bg.BuyingGroupName buying_group, p.FullName primary_contact,
- c.DeliveryPostalCode postal_code, c.ValidFrom valid_from
+ c.DeliveryPostalCode postal_code, c.valid_from
  FROM events e
- JOIN sales_customers c ON c.ValidFrom <= e.t AND e.t < c.ValidTo
- AND ((e.kind = 'customer' AND c.CustomerID = e.id)
+ JOIN LATERAL {silver}.sales_customers_asof(e.t) c
+ ON ((e.kind = 'customer' AND c.CustomerID = e.id)
    OR (e.kind = 'category' AND c.CustomerCategoryID = e.id)
    OR (e.kind = 'group' AND c.BuyingGroupID = e.id))
- JOIN sales_customercategories cc ON c.CustomerCategoryID = cc.CustomerCategoryID
- AND cc.ValidFrom <= e.t AND e.t < cc.ValidTo
- JOIN sales_customers bt ON c.BillToCustomerID = bt.CustomerID
- AND bt.ValidFrom <= e.t AND e.t < bt.ValidTo
- JOIN application_people p ON c.PrimaryContactPersonID = p.PersonID
- AND p.ValidFrom <= e.t AND e.t < p.ValidTo
- LEFT JOIN sales_buyinggroups bg ON c.BuyingGroupID = bg.BuyingGroupID
- AND bg.ValidFrom <= e.t AND e.t < bg.ValidTo
+ JOIN LATERAL {silver}.sales_customer_categories_asof(e.t) cc ON c.CustomerCategoryID = cc.CustomerCategoryID
+ JOIN LATERAL {silver}.sales_customers_asof(e.t) bt ON c.BillToCustomerID = bt.CustomerID
+ JOIN LATERAL {silver}.application_people_asof(e.t) p ON c.PrimaryContactPersonID = p.PersonID
+ LEFT JOIN LATERAL {silver}.sales_buying_groups_asof(e.t) bg ON c.BuyingGroupID = bg.BuyingGroupID
 ), times AS (
  SELECT wwi_customer_id, valid_from,
  LEAD(valid_from) OVER (PARTITION BY wwi_customer_id ORDER BY valid_from) next_from
