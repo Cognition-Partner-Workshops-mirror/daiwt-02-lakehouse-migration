@@ -4,7 +4,6 @@ from transaction_s13 import GOLD, NAMES
 catalog = dbutils.widgets.get('catalog')
 silver = f"`{catalog}`.`{dbutils.widgets.get('silver_schema')}`"
 golden = dbutils.widgets.get('golden_path').rstrip('/')
-assert catalog == 'daiwt_02_mig_dev', 'S13 parity is dev-only'
 
 
 def golden_rows(drop):

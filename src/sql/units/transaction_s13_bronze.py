@@ -6,7 +6,6 @@ catalog = dbutils.widgets.get('catalog')
 bronze = f"`{catalog}`.`{dbutils.widgets.get('bronze_schema')}`"
 golden = dbutils.widgets.get('golden_path').rstrip('/')
 drop = dbutils.widgets.get('drop')
-assert catalog == 'daiwt_02_mig_dev', 'S13 stand-in is dev-only'
 with open(golden + '/manifest.json') as stream:
     manifest = json.load(stream)
 

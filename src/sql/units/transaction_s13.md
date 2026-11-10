@@ -2,7 +2,7 @@
 
 `wwi_transaction_to_silver` replays the three golden drops, refreshes the
 serverless Lakeflow pipeline, then runs strict per-drop multiset parity. It is
-dev-only. The bronze stand-in owns the P4 table names listed in the registry;
+target-catalog parameterized. The bronze stand-in owns the P4 table names listed in the registry;
 remove its tasks/ownership when replacing it with Platform P4.
 
 Silver columns follow the native result-set declaration, with `_drop` and
