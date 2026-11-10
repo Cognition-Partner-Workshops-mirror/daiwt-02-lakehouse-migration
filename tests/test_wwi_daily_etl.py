@@ -105,14 +105,15 @@ def test_registry_replaces_plan(monkeypatch):
 
 
 class Spark:
-    def __init__(self, count=0, error=False):
+    def __init__(self, count=0, error=False, columns=("_drop",)):
         self.count, self.error, self.calls = count, error, []
+        self.columns = columns
 
     def sql(self, statement):
         self.calls.append(statement)
         if self.error:
             raise RuntimeError("missing table")
-        return SimpleNamespace(collect=lambda: [[self.count]])
+        return SimpleNamespace(collect=lambda: [[self.count]], columns=self.columns)
 
 
 def test_silver_normal_empty_and_failures():
@@ -135,6 +136,26 @@ def test_dev_guard_and_p9_requirement(monkeypatch):
     monkeypatch.setitem(sys.modules, "governance.quality", None)
     with pytest.raises(RuntimeError, match="merge PR #28"):
         exercise(None, "daiwt_02_mig_dev", "silver_pr_999")
+
+
+@pytest.mark.parametrize("columns,expected", [(("_drop",), "_drop"), (("drop",), "drop"),
+                                             (("drop", "_drop"), "_drop")])
+@pytest.mark.parametrize("count", [0, 1])
+def test_silver_quarantine_drop_columns(columns, expected, count):
+    registry = {"a": dict(outputs=[], owns=["silver.stock_holding_snapshot_quarantine"])}
+    spark = Spark(count, columns=columns)
+    if count:
+        with pytest.raises(RuntimeError, match="quarantined rows for D2"):
+            verify(spark, registry, "cat", "silver_pr_1", "D2")
+    else:
+        assert verify(spark, registry, "cat", "silver_pr_1", "D2") == 1
+    assert f"WHERE `{expected}` = 'D2'" in spark.calls[-1]
+
+
+def test_silver_quarantine_missing_drop_column():
+    registry = {"a": dict(outputs=[], owns=["silver.customer_changes_quarantine"])}
+    with pytest.raises(RuntimeError, match="silver.customer_changes_quarantine: quarantine table requires an _drop or drop column"):
+        verify(Spark(columns=("customer_id",)), registry, "cat", "silver_pr_1", "D0")
 
 
 @pytest.mark.parametrize("count", [3, 0])

@@ -15,9 +15,13 @@ def verify(spark, registry, catalog, schema, drop):
                      if t.startswith("silver.")})
     for table in silver:
         target = ".".join(identifier(p) for p in (catalog, schema, table.split(".")[1]))
-        spark.sql(f"SELECT * FROM {target} LIMIT 0").collect()
+        frame = spark.sql(f"SELECT * FROM {target} LIMIT 0")
+        frame.collect()
         if table.endswith("_quarantine"):
-            count = spark.sql(f"SELECT count(*) FROM {target} WHERE `_drop` = {literal(drop)}").collect()[0][0]
+            drop_column = next((column for column in ("_drop", "drop") if column in frame.columns), None)
+            if drop_column is None:
+                raise RuntimeError(f"{table}: quarantine table requires an _drop or drop column")
+            count = spark.sql(f"SELECT count(*) FROM {target} WHERE {identifier(drop_column)} = {literal(drop)}").collect()[0][0]
             if count:
                 raise RuntimeError(f"{table}: {count} quarantined rows for {drop}")
     return len(silver)
