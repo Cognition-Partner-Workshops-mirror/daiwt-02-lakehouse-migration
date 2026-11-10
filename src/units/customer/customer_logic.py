@@ -30,19 +30,23 @@ def table_name(source):
     return source.replace(".", "_").lower()
 
 
-def extract_sql(catalog, bronze_schema, last_cutoff, new_cutoff):
+def extract_sql(catalog, bronze_schema, last_cutoff=None, new_cutoff=None):
     for name in (catalog, bronze_schema):
         if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name):
             raise ValueError("Invalid catalog/schema")
-    last, new = datetime7(last_cutoff), datetime7(new_cutoff)
-    if last > new:
-        raise ValueError("last_cutoff exceeds new_cutoff")
     history = []
+    if last_cutoff is None and new_cutoff is None:
+        history.append(f"run_window AS (SELECT * FROM `{catalog}`.`{bronze_schema}`.customer_run_window)")
+        window = "ValidFrom > (SELECT last_cutoff FROM run_window) AND ValidFrom <= (SELECT new_cutoff FROM run_window)"
+    else:
+        last, new = datetime7(last_cutoff), datetime7(new_cutoff)
+        if last > new:
+            raise ValueError("last_cutoff exceeds new_cutoff")
+        window = f"ValidFrom > '{last}' AND ValidFrom <= '{new}'"
     for source in SOURCES:
         name = table_name(source)
         history.append(f"{name} AS (SELECT * FROM `{catalog}`.`{bronze_schema}`.{name} "
                        f"UNION ALL SELECT * FROM `{catalog}`.`{bronze_schema}`.{name}_archive)")
-    window = f"ValidFrom > '{last}' AND ValidFrom <= '{new}'"
     # SQL Server chooses the next strictly greater ValidFrom, even with duplicate events.
     prefix = "WITH " + ",\n".join(history)
     events = []

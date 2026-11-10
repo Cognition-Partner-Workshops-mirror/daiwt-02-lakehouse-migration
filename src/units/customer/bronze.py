@@ -4,8 +4,6 @@ from pathlib import Path
 
 from customer_logic import TABLES, cutoffs, datetime7, table_name
 
-from databricks.sdk import WorkspaceClient
-
 drop = dbutils.widgets.get("drop")
 catalog = dbutils.widgets.get("catalog")
 schema = dbutils.widgets.get("bronze_schema")
@@ -55,9 +53,5 @@ for source in TABLES:
     state.write.mode("overwrite").option("overwriteSchema", True).saveAsTable(target)
     print(f"BRONZE {target}: {state.count()} rows")
 
-client = WorkspaceClient()
-pipeline_id = dbutils.widgets.get("pipeline_id")
-spec = client.pipelines.get(pipeline_id).spec
-settings = {key: value for key, value in vars(spec).items() if value is not None}
-settings["configuration"].update(last_cutoff=last, new_cutoff=new)
-client.pipelines.update(pipeline_id, **settings)
+spark.createDataFrame([(drop, last, new)], "drop STRING, last_cutoff STRING, new_cutoff STRING").write.mode(
+    "overwrite").saveAsTable(f"{catalog}.{schema}.customer_run_window")

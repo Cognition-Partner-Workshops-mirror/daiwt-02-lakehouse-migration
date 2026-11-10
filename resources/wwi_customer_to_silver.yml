@@ -13,8 +13,6 @@ resources:
       configuration:
         source_catalog: ${var.catalog}
         bronze_schema: ${var.bronze_schema}
-        last_cutoff: "2016-06-06 12:31:17.0000000"
-        new_cutoff: "2016-06-06 12:31:17.0000000"
       permissions:
         - level: CAN_VIEW
           group_name: users
@@ -40,7 +38,6 @@ resources:
               catalog: ${var.catalog}
               bronze_schema: ${var.bronze_schema}
               golden_path: ${var.golden_path}
-              pipeline_id: ${resources.pipelines.customer_silver.id}
         - task_key: pipeline
           depends_on:
             - task_key: bronze

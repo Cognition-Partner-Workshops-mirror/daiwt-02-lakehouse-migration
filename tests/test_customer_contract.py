@@ -14,7 +14,7 @@ def test_customer_registry():
     registry = json.loads((ROOT / "src/sql/units/registry.json").read_text())
     entry = registry["wwi_customer_to_silver"]
     assert entry["job"] == "wwi_customer_to_silver"
-    assert entry["outputs"] == ["bronze." + table_name(t) for t in TABLES] + [
+    assert entry["outputs"] == ["bronze." + table_name(t) for t in TABLES] + ["bronze.customer_run_window",
         "silver.customer_changes", "silver.customer_changes_quarantine"]
     assert all("inputs/D0/WideWorldImporters." + t + ".csv" in MANIFEST["files"] for t in TABLES)
 
@@ -70,6 +70,16 @@ def test_customer_sql_invalid_arguments():
 
 def test_customer_seventh_decimal_preserved():
     assert datetime7("2016-06-06 12:31:17.1234567") == "2016-06-06 12:31:17.1234567"
+
+
+def test_customer_control_window():
+    sql = extract_sql("catalog", "bronze")
+    assert "`catalog`.`bronze`.customer_run_window" in sql
+    assert "ValidFrom > (SELECT last_cutoff FROM run_window)" in sql
+    assert "ValidFrom <= (SELECT new_cutoff FROM run_window)" in sql
+    bronze = (ROOT / "src/units/customer/bronze.py").read_text()
+    assert "pipelines.update" not in bronze
+    assert "customer_run_window" in bronze
 
 
 def test_customer_parity_is_strict():

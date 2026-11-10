@@ -1,24 +1,25 @@
 from pyspark import pipelines as dp
-from customer_logic import extract_sql
+from customer_logic import COLUMNS, extract_sql
 
-last = spark.conf.get("last_cutoff")
-new = spark.conf.get("new_cutoff")
+catalog = spark.conf.get("source_catalog")
+bronze_schema = spark.conf.get("bronze_schema")
 checks = {
     "key_present": "wwi_customer_id IS NOT NULL",
     "valid_from_present": "valid_from IS NOT NULL",
     "valid_interval": "valid_from < valid_to",
-    "within_window": f"valid_from > '{last}' AND valid_from <= '{new}'",
 }
 
 
 @dp.materialized_view(name="customer_changes", comment="Customer extract; staging contract: Buying Group NOT NULL")
 @dp.expect_all(checks)
 def customer_changes():
-    return spark.sql(extract_sql(spark.conf.get("source_catalog"),
-                                 spark.conf.get("bronze_schema"), last, new))
+    return spark.sql(extract_sql(catalog, bronze_schema))
 
 
 @dp.materialized_view(name="customer_changes_quarantine")
 def customer_changes_quarantine():
     invalid = " OR ".join(f"NOT COALESCE(({rule}), false)" for rule in checks.values())
-    return spark.read.table("customer_changes").where(invalid)
+    invalid += " OR NOT COALESCE(valid_from > last_cutoff AND valid_from <= new_cutoff, false)"
+    return (spark.read.table("customer_changes")
+            .crossJoin(spark.read.table(f"{catalog}.{bronze_schema}.customer_run_window"))
+            .where(invalid).select(*COLUMNS))
