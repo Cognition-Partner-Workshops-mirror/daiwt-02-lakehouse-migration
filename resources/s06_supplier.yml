@@ -10,7 +10,6 @@ resources:
         - file:
             path: ../src/sql/units/s06_supplier/pipeline.py
       configuration:
-        s06.bronze: ${var.catalog}.${var.bronze_schema}
         s06.silver: ${var.catalog}.${var.silver_schema}
       permissions:
         - group_name: users
@@ -35,7 +34,7 @@ resources:
             notebook_path: ../src/sql/units/s06_supplier/run_window.py
             base_parameters:
               catalog: ${var.catalog}
-              bronze_schema: ${var.bronze_schema}
+              silver_schema: ${var.silver_schema}
               drop: "{{job.parameters.drop}}"
               last_cutoff: "{{job.parameters.last_cutoff}}"
               new_cutoff: "{{job.parameters.new_cutoff}}"

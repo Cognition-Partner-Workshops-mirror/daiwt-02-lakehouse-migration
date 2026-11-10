@@ -3,7 +3,6 @@ from pyspark.sql import SparkSession
 from logic import change_sql
 
 spark = SparkSession.builder.getOrCreate()
-bronze = spark.conf.get('s06.bronze')
 silver = spark.conf.get('s06.silver')
 
 VALID = ('wwi_supplier_id IS NOT NULL AND supplier IS NOT NULL AND category IS NOT NULL '
@@ -15,7 +14,7 @@ VALID = ('wwi_supplier_id IS NOT NULL AND supplier IS NOT NULL AND category IS N
 @dp.materialized_view(name='supplier_changes')
 @dp.expect('supplier_values', VALID)
 def supplier_changes():
-    return spark.sql(change_sql(silver, window_table=f'{bronze}.s06_supplier_run_window')).replace('\\N', None)
+    return spark.sql(change_sql(silver, window_table=f'{silver}.s06_supplier_run_window')).replace('\\N', None)
 
 
 @dp.materialized_view(name='supplier_changes_quarantine')

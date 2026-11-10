@@ -12,11 +12,10 @@ The registry dependencies order P4 and P6 before S06 when selected together.
 S06 does not ingest or own any shared source or raw tables.
 
 The job accepts `drop`, `last_cutoff`, `new_cutoff` from `ci/run_units.py`.
-`ci/dev_verify.sh pr_18 bronze_landing_replay,silver_temporal_views,s06_supplier`
-selects the prerequisites explicitly: the merged runner orders selected units
-but does not add prerequisites. It cleans owned objects, then runs D0, D1, D2
-in order. Each S06 run writes its
-one-row `bronze.s06_supplier_run_window`, refreshes the pipeline and checks parity.
+`ci/dev_verify.sh pr_18 ''` classifies the changed registry entry and includes
+its P4/P6 prerequisites. It cleans owned objects, then runs D0, D1, D2 in order.
+Each S06 run writes its one-row `silver.s06_supplier_run_window`, refreshes the
+pipeline and checks parity.
 The pipeline configuration is immutable during runs.
 
 `logic.change_sql` reads P6's silver `purchasing_suppliers_history`,

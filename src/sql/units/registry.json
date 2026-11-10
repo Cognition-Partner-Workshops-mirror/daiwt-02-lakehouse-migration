@@ -144,7 +144,7 @@
     "owns": [
       "silver.supplier_changes",
       "silver.supplier_changes_quarantine",
-      "bronze.s06_supplier_run_window"
+      "silver.s06_supplier_run_window"
     ],
     "depends_on": [
       "bronze_landing_replay",

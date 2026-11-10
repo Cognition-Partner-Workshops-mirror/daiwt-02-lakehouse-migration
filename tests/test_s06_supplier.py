@@ -86,6 +86,7 @@ def test_runner_contract():
     assert registry['depends_on'] == ['bronze_landing_replay', 'silver_temporal_views']
     assert registry['outputs'] == []
     assert not any('raw' in table for table in registry['owns'])
+    assert all(table.startswith('silver.') for table in registry['owns'])
 
 
 @pytest.mark.parametrize('rows,quarantine,fail', [([], 0, False),
@@ -136,7 +137,7 @@ def test_run_window_notebook(monkeypatch, drop):
             return self
         def saveAsTable(self, name):
             saved[name] = self.rows
-    parameters = dict(catalog='test', bronze_schema='bronze', golden_path=str(ROOT / 'golden'),
+    parameters = dict(catalog='test', silver_schema='silver', golden_path=str(ROOT / 'golden'),
                       drop=drop, last_cutoff='last', new_cutoff='new')
     widgets = SimpleNamespace(text=lambda *args: None, get=parameters.__getitem__)
     def run():
@@ -149,7 +150,7 @@ def test_run_window_notebook(monkeypatch, drop):
         return
     run()
     assert len(saved) == 1
-    assert saved['test.bronze.s06_supplier_run_window'] == [(drop, 'last', 'new')]
+    assert saved['test.silver.s06_supplier_run_window'] == [(drop, 'last', 'new')]
 
 
 def test_spark_query_matches_walk():
