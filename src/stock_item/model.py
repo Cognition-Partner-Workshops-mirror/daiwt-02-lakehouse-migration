@@ -1,4 +1,4 @@
-"""S05's local temporal adapter over P4's typed bronze contract."""
+"""S05's temporal extraction over P6 history views and AS OF functions."""
 import re
 
 SENTINEL = "9999-12-31 23:59:59.9999999"
@@ -54,22 +54,19 @@ def window(capture, drop):
     return result
 
 
-def changes_sql(bronze, silver):
+def changes_sql(silver):
     # Fixed-width strings preserve SQL Server's seventh fractional digit, including year 9999.
     return f"""
-WITH items AS (
- SELECT * FROM {bronze}.warehouse_stock_items
- UNION ALL SELECT * FROM {bronze}.warehouse_stock_items_archive
-), packages AS (
- SELECT * FROM {bronze}.warehouse_package_types
- UNION ALL SELECT * FROM {bronze}.warehouse_package_types_archive
-), colors AS (
- SELECT * FROM {bronze}.warehouse_colors
- UNION ALL SELECT * FROM {bronze}.warehouse_colors_archive
+WITH item_events AS (
+ SELECT StockItemID, valid_from AS event_time FROM {silver}.warehouse_stock_items_history
+ WHERE _version_source = 'current'
+ UNION ALL
+ SELECT StockItemID, valid_from AS event_time FROM {silver}.warehouse_stock_items_history
+ WHERE _version_source = 'archive'
 ), events AS (
- SELECT i.StockItemID, i.ValidFrom_str AS event_time FROM items i
+ SELECT i.StockItemID, i.event_time FROM item_events i
  CROSS JOIN {silver}.stock_item_window w
- WHERE i.ValidFrom_str > w.last_cutoff AND i.ValidFrom_str <= w.new_cutoff
+ WHERE i.event_time > w.last_cutoff AND i.event_time <= w.new_cutoff
 ), staged AS (
  SELECT CAST(i.StockItemID AS INT) AS wwi_stock_item_id,
  i.StockItemName AS stock_item, COALESCE(c.ColorName, 'N/A') AS color,
@@ -83,15 +80,15 @@ WITH items AS (
  CAST(i.UnitPrice AS DECIMAL(18,2)) AS unit_price,
  CAST(i.RecommendedRetailPrice AS DECIMAL(18,2)) AS recommended_retail_price,
  CAST(i.TypicalWeightPerUnit AS DECIMAL(18,3)) AS typical_weight_per_unit,
- unhex(i.Photo) AS photo, i.ValidFrom_str AS valid_from
- FROM events e JOIN items i ON e.StockItemID = i.StockItemID
- AND i.ValidFrom_str <= e.event_time AND e.event_time < i.ValidTo_str
- JOIN packages s ON i.UnitPackageID = s.PackageTypeID
- AND s.ValidFrom_str <= e.event_time AND e.event_time < s.ValidTo_str
- JOIN packages b ON i.OuterPackageID = b.PackageTypeID
- AND b.ValidFrom_str <= e.event_time AND e.event_time < b.ValidTo_str
- LEFT JOIN colors c ON i.ColorID = c.ColorID
- AND c.ValidFrom_str <= e.event_time AND e.event_time < c.ValidTo_str
+ unhex(i.Photo) AS photo, i.valid_from AS valid_from
+ FROM events e JOIN LATERAL {silver}.warehouse_stock_items_asof(e.event_time) i
+ ON e.StockItemID = i.StockItemID
+ JOIN LATERAL {silver}.warehouse_package_types_asof(e.event_time) s
+ ON i.UnitPackageID = s.PackageTypeID
+ JOIN LATERAL {silver}.warehouse_package_types_asof(e.event_time) b
+ ON i.OuterPackageID = b.PackageTypeID
+ LEFT JOIN LATERAL {silver}.warehouse_colors_asof(e.event_time) c
+ ON i.ColorID = c.ColorID
 ), times AS (
  SELECT DISTINCT wwi_stock_item_id, valid_from FROM staged
 ), intervals AS (

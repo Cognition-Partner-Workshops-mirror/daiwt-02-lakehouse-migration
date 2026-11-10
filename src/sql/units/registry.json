@@ -3,7 +3,7 @@
     "job": "wwi_stock_item_to_silver",
     "outputs": [],
     "owns": ["silver.stock_item_changes", "silver.stock_item_changes_quarantine", "silver.stock_item_window"],
-    "depends_on": ["bronze_landing_replay"]
+    "depends_on": ["bronze_landing_replay", "silver_temporal_views"]
   },
   "bronze_landing_replay": {
     "job": "bronze_landing_replay",

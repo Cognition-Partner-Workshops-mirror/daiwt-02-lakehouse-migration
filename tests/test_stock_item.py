@@ -23,11 +23,11 @@ def test_pipeline_loads_without_file_global(monkeypatch):
         pipelines=SimpleNamespace(materialized_view=decorator, expect_all=decorator)))
     source_path = str(ROOT / "src/stock_item")
     config = {"s05.source_path": source_path, "s05.catalog": "daiwt_02_mig_dev",
-              "s05.bronze_schema": "bronze_pr_16", "s05.silver_schema": "silver_pr_16"}
+              "s05.silver_schema": "silver_pr_16"}
     monkeypatch.setattr(sys, "path", list(sys.path))
     namespace = {"spark": SimpleNamespace(conf=SimpleNamespace(get=config.__getitem__))}
     exec(compile((ROOT / "src/stock_item/pipeline.py").read_text(), "<pipeline>", "exec"), namespace)
-    assert namespace["bronze"] == "`daiwt_02_mig_dev`.`bronze_pr_16`"
+    assert namespace["silver"] == "`daiwt_02_mig_dev`.`silver_pr_16`"
     assert callable(namespace["stock_item_changes"])
     assert callable(namespace["stock_item_changes_quarantine"])
 
@@ -86,7 +86,7 @@ def test_registry_and_job():
     registry = json.loads((ROOT / "src/sql/units/registry.json").read_text())
     entry = registry["wwi_stock_item_to_silver"]
     assert entry["outputs"] == []
-    assert entry["depends_on"] == ["bronze_landing_replay"]
+    assert entry["depends_on"] == ["bronze_landing_replay", "silver_temporal_views"]
     assert set(entry["owns"]) == {
         "silver.stock_item_window", "silver.stock_item_changes",
         "silver.stock_item_changes_quarantine",
@@ -121,8 +121,35 @@ def connection():
             db.execute(f"UPDATE bronze.{table} SET {name}_str = {name}")
             db.execute(f"UPDATE bronze.{table} SET {name} = substr({name}, 1, 26)")
     db.execute("ATTACH DATABASE ':memory:' AS silver")
+    for table in ("warehouse_stock_items", "warehouse_package_types", "warehouse_colors"):
+        db.execute(f"CREATE TEMP VIEW {table}_history AS "
+                   f"SELECT *, ValidFrom_str AS valid_from, ValidTo_str AS valid_to, 'current' AS _version_source "
+                   f"FROM bronze.{table} UNION ALL "
+                   f"SELECT *, ValidFrom_str AS valid_from, ValidTo_str AS valid_to, 'archive' AS _version_source "
+                   f"FROM bronze.{table}_archive")
     db.execute("CREATE TABLE silver.stock_item_window (drop_name TEXT, last_cutoff TEXT, new_cutoff TEXT)")
     return db
+
+
+def sqlite_changes_sql():
+    # SQLite has no lateral table functions; expand P6's half-open AS OF contract.
+    sql = changes_sql("silver")
+    for table, alias in (("warehouse_stock_items", "i"), ("warehouse_package_types", "s"),
+                         ("warehouse_package_types", "b"), ("warehouse_colors", "c")):
+        sql = sql.replace(f"LATERAL silver.{table}_asof(e.event_time) {alias}\n ON ",
+                          f"{table}_history {alias}\n ON {alias}.valid_from <= e.event_time "
+                          f"AND e.event_time < {alias}.valid_to AND ")
+    return sql.replace("silver.warehouse_stock_items_history", "warehouse_stock_items_history")
+
+
+def test_p6_query_interface():
+    sql = changes_sql("silver")
+    assert sql.count("UNION ALL") == 1
+    assert "SELECT StockItemID, valid_from AS event_time FROM silver.warehouse_stock_items_history" in sql
+    assert "JOIN LATERAL silver.warehouse_stock_items_asof(e.event_time)" in sql
+    assert sql.count("JOIN LATERAL silver.warehouse_package_types_asof(e.event_time)") == 2
+    assert "LEFT JOIN LATERAL silver.warehouse_colors_asof(e.event_time)" in sql
+    assert "bronze." not in sql
 
 
 def test_golden_reconstruction_and_empty_incremental():
@@ -139,7 +166,7 @@ def test_golden_reconstruction_and_empty_incremental():
         last = "1900-01-01 00:00:00.0000000" if drop == "D0" else params["last_cutoff"]
         db.execute("DELETE FROM silver.stock_item_window")
         db.execute("INSERT INTO silver.stock_item_window VALUES (?, ?, ?)", (drop, last, params["new_cutoff"]))
-        actual = list(db.execute(changes_sql("bronze", "silver")))
+        actual = list(db.execute(sqlite_changes_sql()))
         current = rows(GOLDEN / "outputs" / drop / "tables/Dimension.Stock_Item.csv")
         previous = (rows(GOLDEN / "outputs" / f"D{int(drop[1:]) - 1}" / "tables/Dimension.Stock_Item.csv")
                     if drop != "D0" else [])
@@ -162,7 +189,7 @@ def test_golden_reconstruction_and_empty_incremental():
         def comparable(row):
             return tuple(value for column, value in zip(COLUMNS, row) if column not in excluded)
         assert Counter(map(comparable, actual_rows)) == Counter(map(comparable, expected_rows))
-        db.execute("CREATE TEMP VIEW staged AS " + changes_sql("bronze", "silver"))
+        db.execute("CREATE TEMP VIEW staged AS " + sqlite_changes_sql())
         invalid = " OR ".join(f"NOT COALESCE(({rule}), FALSE)" for rule in RULES.values())
         assert db.execute(f"SELECT count(*) FROM staged WHERE {invalid}").fetchone()[0] == 0
         db.execute("DROP VIEW staged")
@@ -172,7 +199,7 @@ def test_same_time_events_do_not_close_each_other():
     db = connection()
     db.execute("INSERT INTO silver.stock_item_window VALUES ('D0', '1900', '9999')")
     db.execute("INSERT INTO bronze.warehouse_stock_items_archive SELECT * FROM bronze.warehouse_stock_items_archive LIMIT 1")
-    actual = list(db.execute(changes_sql("bronze", "silver")))
+    actual = list(db.execute(sqlite_changes_sql()))
     assert all(r["valid_from"] < r["valid_to"] for r in actual)
     assert len(actual) == 674
 
@@ -181,6 +208,6 @@ def test_invalid_rows_quarantined_without_dropping():
     db = connection()
     db.execute("INSERT INTO silver.stock_item_window VALUES ('D0', '1900', '9999')")
     db.execute("UPDATE bronze.warehouse_stock_items SET TaxRate = '-1'")
-    actual = list(db.execute(changes_sql("bronze", "silver")))
+    actual = list(db.execute(sqlite_changes_sql()))
     assert len(actual) == 671
     assert sum(r["tax_rate"] < 0 for r in actual) == 227
