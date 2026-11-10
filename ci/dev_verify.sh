@@ -44,7 +44,7 @@ fi
 if [[ $status == PASS ]]; then
   for D in D0 D1 D2; do
     if ! python ci/run_units.py "$suffix" out/selected-units.json --drop "$D" --run-urls out/run-urls.txt ||
-       ! python src/parity/parity_check.py --suffix "$suffix" --drop "$D" --output "out/parity-$D.json"; then
+       ! python src/parity/parity_check.py --suffix "$suffix" --drop "$D" --units out/selected-units.json --output "out/parity-$D.json"; then
       status=FAIL
       break
     fi
