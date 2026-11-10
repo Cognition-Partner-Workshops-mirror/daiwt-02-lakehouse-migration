@@ -1,4 +1,10 @@
 {
+  "wwi_fact_purchase_to_gold": {
+    "job": "wwi_fact_purchase_to_gold",
+    "outputs": ["gold.fact_purchase"],
+    "owns": [],
+    "depends_on": ["p5_gold_seed", "wwi_purchase_to_silver", "wwi_dim_stock_item_to_gold", "wwi_dim_supplier_to_gold"]
+  },
   "wwi_dim_city_to_gold": {
     "job": "wwi_dim_city_to_gold",
     "outputs": ["gold.dim_city"],
