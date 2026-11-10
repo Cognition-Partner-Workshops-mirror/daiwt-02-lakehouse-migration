@@ -1,0 +1,51 @@
+resources:
+  pipelines:
+    wwi_sale_silver:
+      name: ${var.job_name_prefix}wwi_sale_silver
+      catalog: ${var.catalog}
+      schema: ${var.silver_schema}
+      serverless: true
+      continuous: false
+      libraries:
+        - file:
+            path: ../src/sql/units/wwi_sale_to_silver/pipeline.py
+      configuration:
+        sale.catalog: ${var.catalog}
+        sale.bronze_schema: ${var.bronze_schema}
+        sale.source_path: ${workspace.file_path}/src/sql/units
+  jobs:
+    wwi_sale_to_silver:
+      name: ${var.job_name_prefix}wwi_sale_to_silver
+      max_concurrent_runs: 1
+      queue:
+        enabled: true
+      parameters:
+        - name: drop
+          default: ${var.drop}
+        - name: last_cutoff
+          default: ${var.last_cutoff}
+        - name: new_cutoff
+          default: ${var.new_cutoff}
+      tasks:
+        - task_key: prepare
+          notebook_task:
+            notebook_path: ../src/sql/units/wwi_sale_to_silver/prepare.py
+            base_parameters:
+              catalog: ${var.catalog}
+              bronze_schema: ${var.bronze_schema}
+              golden_path: ${var.golden_path}
+        - task_key: silver
+          depends_on:
+            - task_key: prepare
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.wwi_sale_silver.id}
+        - task_key: parity
+          depends_on:
+            - task_key: silver
+          notebook_task:
+            notebook_path: ../src/sql/units/wwi_sale_to_silver/parity.py
+            base_parameters:
+              catalog: ${var.catalog}
+              bronze_schema: ${var.bronze_schema}
+              silver_schema: ${var.silver_schema}
+              golden_path: ${var.golden_path}
