@@ -137,5 +137,11 @@
     ],
     "depends_on": ["bronze_landing_replay"]
   },
-  "wwi_purchase_to_silver": {"job": "wwi_purchase_to_silver", "outputs": [], "owns": ["silver.purchase_changes", "silver.purchase_staging", "silver.purchase_changes_quarantine", "silver.purchase_parity_results"], "depends_on": ["bronze_landing_replay"]}
+  "wwi_purchase_to_silver": {"job": "wwi_purchase_to_silver", "outputs": [], "owns": ["silver.purchase_changes", "silver.purchase_staging", "silver.purchase_changes_quarantine", "silver.purchase_parity_results"], "depends_on": ["bronze_landing_replay"]},
+  "wwi_sale_to_silver": {
+    "job": "wwi_sale_to_silver",
+    "outputs": [],
+    "owns": ["silver.sale_changes", "silver.sale_changes_quarantine"],
+    "depends_on": ["bronze_landing_replay"]
+  }
 }

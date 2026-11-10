@@ -1,0 +1,82 @@
+resources:
+  pipelines:
+    wwi_sale_silver:
+      name: ${var.job_name_prefix}wwi_sale_silver
+      catalog: ${var.catalog}
+      schema: ${var.silver_schema}
+      serverless: true
+      continuous: false
+      libraries:
+        - file:
+            path: ./pipeline.py
+      configuration:
+        sale.catalog: ${var.catalog}
+        sale.bronze_schema: ${var.bronze_schema}
+  jobs:
+    wwi_sale_to_silver:
+      name: ${var.job_name_prefix}wwi_sale_to_silver
+      max_concurrent_runs: 1
+      queue:
+        enabled: true
+      parameters:
+        - name: drop
+          default: all
+        - name: last_cutoff
+          default: ""
+        - name: new_cutoff
+          default: ""
+      tasks:
+        - task_key: plan
+          notebook_task:
+            notebook_path: ./plan.py
+            base_parameters:
+              golden_path: ${var.golden_path}
+        - task_key: replay
+          depends_on:
+            - task_key: plan
+          for_each_task:
+            inputs: "{{tasks.plan.values.runs}}"
+            concurrency: 1
+            task:
+              task_key: drop
+              run_job_task:
+                job_id: ${resources.jobs.wwi_sale_drop.id}
+                job_parameters:
+                  drop: "{{input.drop}}"
+                  last_cutoff: "{{input.last_cutoff}}"
+                  new_cutoff: "{{input.new_cutoff}}"
+    wwi_sale_drop:
+      name: ${var.job_name_prefix}wwi_sale_drop
+      max_concurrent_runs: 1
+      queue:
+        enabled: true
+      parameters:
+        - name: drop
+          default: D0
+        - name: last_cutoff
+          default: ""
+        - name: new_cutoff
+          default: ""
+      tasks:
+        - task_key: bronze
+          notebook_task:
+            notebook_path: ./bronze.py
+            base_parameters:
+              catalog: ${var.catalog}
+              bronze_schema: ${var.bronze_schema}
+              golden_path: ${var.golden_path}
+        - task_key: silver
+          depends_on:
+            - task_key: bronze
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.wwi_sale_silver.id}
+        - task_key: parity
+          depends_on:
+            - task_key: silver
+          notebook_task:
+            notebook_path: ./parity.py
+            base_parameters:
+              catalog: ${var.catalog}
+              bronze_schema: ${var.bronze_schema}
+              silver_schema: ${var.silver_schema}
+              golden_path: ${var.golden_path}
