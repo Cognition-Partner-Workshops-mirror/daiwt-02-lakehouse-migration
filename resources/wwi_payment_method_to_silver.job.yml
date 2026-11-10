@@ -1,0 +1,47 @@
+resources:
+  pipelines:
+    payment_method_silver:
+      name: ${var.job_name_prefix}Payment Method Silver
+      catalog: ${var.catalog}
+      schema: ${var.silver_schema}
+      serverless: true
+      continuous: false
+      libraries:
+        - file:
+            path: ../src/sql/units/wwi_payment_method_to_silver/pipeline.py
+      configuration:
+        payment_method.catalog: ${var.catalog}
+        payment_method.silver_schema: ${var.silver_schema}
+  jobs:
+    wwi_payment_method_to_silver:
+      name: ${var.job_name_prefix}wwi_payment_method_to_silver
+      max_concurrent_runs: 1
+      parameters:
+        - name: drop
+          default: ${var.drop}
+        - name: last_cutoff
+          default: ${var.last_cutoff}
+        - name: new_cutoff
+          default: ${var.new_cutoff}
+      tasks:
+        - task_key: window
+          notebook_task:
+            notebook_path: ../src/sql/units/wwi_payment_method_to_silver/window.py
+            base_parameters:
+              catalog: ${var.catalog}
+              silver_schema: ${var.silver_schema}
+        - task_key: silver
+          depends_on:
+            - task_key: window
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.payment_method_silver.id}
+            full_refresh: true
+        - task_key: parity
+          depends_on:
+            - task_key: silver
+          notebook_task:
+            notebook_path: ../src/sql/units/wwi_payment_method_to_silver/verify.py
+            base_parameters:
+              catalog: ${var.catalog}
+              silver_schema: ${var.silver_schema}
+              golden_path: ${var.golden_path}
