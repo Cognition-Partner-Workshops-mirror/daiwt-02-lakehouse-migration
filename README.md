@@ -63,7 +63,8 @@ Registered outputs report PASS only for exact row-count and content matches.
 ## Adding a unit
 
 1. Add `src/sql/units/<unit>.sql` and its bundle job resource, included from
-   `databricks.yml`. Pass catalog and layer schema variables to the job.
+   `databricks.yml`. Pass catalog and layer schema variables to the job, and name it
+   `${var.job_name_prefix}<unit>` (dev `[pr_<n>] <unit>`, prod `<unit>`).
 2. Register the bundle job key and all produced golden tables:
 
    ```json

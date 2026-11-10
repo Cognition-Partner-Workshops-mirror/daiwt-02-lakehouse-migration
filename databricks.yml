@@ -16,12 +16,14 @@ variables:
     default: 6dc4b80538621b7b
   golden_path:
     default: /Volumes/daiwt_02_mig_prod/landing/golden
+  job_name_prefix:
+    description: Prefix for bundle job names (presets.name_prefix would also rename schemas).
+    default: "[${var.schema_suffix}] "
 
 targets:
   dev:
     default: true
     presets:
-      name_prefix: "[${var.schema_suffix}] "
       trigger_pause_status: PAUSED
     workspace:
       root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/dev/${var.schema_suffix}
@@ -53,6 +55,7 @@ targets:
     variables:
       catalog: daiwt_02_mig_prod
       schema_suffix: prod
+      job_name_prefix: ""
       bronze_schema: bronze
       silver_schema: silver
       gold_schema: gold
