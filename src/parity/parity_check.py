@@ -167,14 +167,6 @@ class Warehouse:
         return rows
 
 
-def golden_csv_source(entry, golden_path):
-    schema_string = ", ".join(f"{identifier(c)} STRING" for c in entry["columns"])
-    return (
-        f"read_files({literal(golden_path.rstrip('/') + '/' + entry['path'])}, "
-        f"format=>'csv', header=>true, schema=>{literal(schema_string)}, "
-        f"nullValue=>{literal(chr(92) + 'N')}, multiLine=>true, escape=>{literal(chr(34))}, mode=>'FAILFAST')")
-
-
 def compare_entry(warehouse, entry, golden_path, catalog, schema):
     table = entry["table"].split(".")[1]
     target = ".".join(identifier(v) for v in (catalog, schema, table))
@@ -187,7 +179,11 @@ def compare_entry(warehouse, entry, golden_path, catalog, schema):
         raise
     columns = entry["columns"]
     rendered = ", ".join(f"{render_column(c, types[c])} AS {identifier(c)}" for c in columns)
-    source = golden_csv_source(entry, golden_path)
+    schema_string = ", ".join(f"{identifier(c)} STRING" for c in columns)
+    source = (
+        f"read_files({literal(golden_path.rstrip('/') + '/' + entry['path'])}, "
+        f"format=>'csv', header=>true, schema=>{literal(schema_string)}, "
+        f"nullValue=>{literal(chr(92) + 'N')}, multiLine=>true, escape=>{literal(chr(34))}, mode=>'FAILFAST')")
     normalized = normalize(columns, entry["compare"])
     cte = (f"WITH golden_raw AS (SELECT * FROM {source}), "
            f"actual_raw AS (SELECT {rendered} FROM {target}), "

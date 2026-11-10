@@ -1,6 +1,6 @@
 """Reusable D0 baseline seed; does not generate or extend golden values."""
 
-from parity.parity_check import golden_csv_source
+from parity.parity_check import literal
 from sql.framework import fmt_datetime7, identifier, relation
 
 
@@ -15,6 +15,14 @@ outstanding_balance""".split()}
 DECIMALS.update(tax_rate=3, typical_weight_per_unit=3)
 DATETIMES = {"valid_from", "valid_to", "data_load_started", "data_load_completed",
              "source_system_cutoff_time", "cutoff_time"}
+
+
+def golden_csv_source(entry, golden_path):
+    schema_string = ", ".join(f"{identifier(c)} STRING" for c in entry["columns"])
+    return (
+        f"read_files({literal(golden_path.rstrip('/') + '/' + entry['path'])}, "
+        f"format=>'csv', header=>true, schema=>{literal(schema_string)}, "
+        f"nullValue=>{literal(chr(92) + 'N')}, multiLine=>true, escape=>{literal(chr(34))}, mode=>'FAILFAST')")
 
 
 def column_type(column):

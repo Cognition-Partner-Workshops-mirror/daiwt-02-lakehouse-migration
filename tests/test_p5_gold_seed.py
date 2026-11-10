@@ -5,10 +5,9 @@ from pathlib import Path
 
 import pytest
 
-from parity.parity_check import golden_csv_source
 from sql.units.p5_gold_seed.integration import ENTITIES, Integration, allocate_keys, cutoff_literal
 from sql.units.p5_gold_seed.job import run
-from sql.units.p5_gold_seed.seed import column_type, seed_statements
+from sql.units.p5_gold_seed.seed import column_type, golden_csv_source, seed_statements
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT = json.loads((ROOT / "src/parity/contract.json").read_text())
