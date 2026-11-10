@@ -8,6 +8,7 @@ CREATE OR REFRESH MATERIALIZED VIEW employee_changes (
 WITH fully_applied_drops AS (
   SELECT drop, drop_index
   FROM ${bronze_catalog}.${bronze_schema}.bronze_replay_log
+  WHERE status = 'PASS'
   GROUP BY drop, drop_index
   HAVING count(*) = 38 AND count_if(status = 'PASS') = 38
     AND count(DISTINCT source_table) = 38

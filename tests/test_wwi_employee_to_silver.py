@@ -69,7 +69,7 @@ def cutoff(value):
 def employee_window(windows, log, table_count):
     complete = []
     for drop in {r["drop"] for r in log}:
-        records = [r for r in log if r["drop"] == drop]
+        records = [r for r in log if r["drop"] == drop and r["status"] == "PASS"]
         if (len(records) == table_count and all(r["status"] == "PASS" for r in records)
                 and len({r["source_table"] for r in records}) == table_count):
             complete.append(drop)
@@ -146,8 +146,9 @@ def test_latest_fully_applied_window():
     log += [{"drop": "D1", "source_table": "0", "status": "PASS"}]
     assert employee_window(windows, log, 38)["name"] == "D0"
     log += [{"drop": "D1", "source_table": str(i), "status": "PASS"} for i in range(1, 38)]
+    log += [{"drop": "D1", "source_table": None, "status": "STARTED"}]
     assert employee_window(windows, log, 38)["name"] == "D1"
-    log[-1]["status"] = "FAIL"
+    log[-2]["status"] = "FAIL"
     assert employee_window(windows, log, 38)["name"] == "D0"
     with pytest.raises(ValueError, match="No fully applied"):
         employee_window(windows, [], 38)
@@ -180,6 +181,7 @@ def test_employee_p4_sql_contract():
     assert "p.IsEmployee = true" in sql and "cast(IsSalesperson AS INT)" in sql
     assert "employee_drop_window" not in sql and "_loaded_drop" not in sql
     assert "bronze_replay_log" in sql and "golden_drops" in sql
+    assert "WHERE status = 'PASS'" in sql
     spec = json.loads((ROOT / "src/bronze/tables.json").read_text())
     assert len(spec["tables"]) == 38
     for table in spec["tables"]:
