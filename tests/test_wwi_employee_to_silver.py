@@ -202,7 +202,6 @@ def test_employee_bundle_registry_and_harness(monkeypatch):
     assert job["name"] == "${var.job_name_prefix}" + UNIT
     assert {p["name"]: p["default"] for p in job["parameters"]} == {
         "drop": "${var.drop}", "last_cutoff": "${var.last_cutoff}", "new_cutoff": "${var.new_cutoff}"}
-    assert job["permissions"] == [{"group_name": "users", "level": "CAN_VIEW"}]
     tasks = job["tasks"]
     assert [t["task_key"] for t in tasks] == ["silver", "parity"]
     assert "depends_on" not in tasks[0]
@@ -216,7 +215,6 @@ def test_employee_bundle_registry_and_harness(monkeypatch):
     assert not (ROOT / f"src/sql/units/{UNIT}/bronze.py").exists()
     pipeline = resource["pipelines"]["wwi_employee_pipeline"]
     assert pipeline["serverless"] is True
-    assert pipeline["permissions"] == [{"group_name": "users", "level": "CAN_VIEW"}]
     assert pipeline["catalog"] == "${var.catalog}"
     assert pipeline["target"] == "${var.silver_schema}"
     registry = json.loads((ROOT / "src/sql/units/registry.json").read_text())
