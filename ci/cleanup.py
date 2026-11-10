@@ -16,8 +16,9 @@ REPO = "Cognition-Partner-Workshops-mirror/daiwt-02-lakehouse-migration"
 def candidates(schemas, closed):
     # The optional pr_<n>_ prefix matches schemas deployed while presets.name_prefix renamed them.
     for schema in schemas:
-        match = re.fullmatch(r"(?:pr_[0-9]+_)?(bronze|silver|gold)_pr_([0-9]+)", schema.name)
-        if match and schema.comment == MARKER and (closed is None or int(match[2]) in closed):
+        match = re.fullmatch(r"(?:pr_([0-9]+)_)?(bronze|silver|gold)_pr_([0-9]+)", schema.name)
+        if (match and match[1] in (None, match[3]) and schema.comment == MARKER
+                and (closed is None or int(match[3]) in closed)):
             yield schema.name
 
 

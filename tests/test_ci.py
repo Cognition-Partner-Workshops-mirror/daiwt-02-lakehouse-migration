@@ -101,7 +101,7 @@ def test_cleanup_scoping():
         ("gold_pr_1", "daiwt-02-migration"), ("bronze_pr_2", "daiwt-02-migration"),
         ("landing", "daiwt-02-migration"), ("gold_pr_3", "another-repo"),
         ("gold", "daiwt-02-migration"), ("gold_pr_1_extra", "daiwt-02-migration"),
-        ("pr_4_silver_pr_4", "daiwt-02-migration")]]
+        ("pr_4_silver_pr_4", "daiwt-02-migration"), ("pr_1_gold_pr_4", "daiwt-02-migration")]]
     assert list(candidates(schemas, {1})) == ["gold_pr_1"]
     assert list(candidates(schemas, None)) == ["gold_pr_1", "bronze_pr_2", "pr_4_silver_pr_4"]
 
