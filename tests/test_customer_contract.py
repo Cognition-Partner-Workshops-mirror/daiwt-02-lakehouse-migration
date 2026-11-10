@@ -81,6 +81,8 @@ def test_customer_control_window():
     assert "`catalog`.`bronze`.golden_drops" in sql
     assert "`catalog`.`bronze`.bronze_replay_log WHERE status = 'PASS'" in sql
     assert "table_name = 'Customer'" in sql
+    for column in ("last_cutoff", "new_cutoff"):
+        assert f"concat(split_part({column}, '.', 1), '.', rpad(split_part({column}, '.', 2), 7, '0')) AS {column}" in sql
     assert "ValidFrom > (SELECT last_cutoff FROM run_window)" in sql
     assert "ValidFrom <= (SELECT new_cutoff FROM run_window)" in sql
     assert not (ROOT / "src/units/customer/bronze.py").exists()

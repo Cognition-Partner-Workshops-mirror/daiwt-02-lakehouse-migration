@@ -86,7 +86,9 @@ FROM seed_customer WHERE customer_key <> 0
 )
 SELECT CASE WHEN :drop IN ('D0', 'D1', 'D2')
  AND EXISTS (SELECT 1 FROM IDENTIFIER(:catalog || '.' || :bronze_schema || '.golden_drops')
- WHERE table_name = 'Customer' AND drop = :drop AND last_cutoff = :last_cutoff AND new_cutoff = :new_cutoff)
+ WHERE table_name = 'Customer' AND drop = :drop
+ AND concat(split_part(last_cutoff, '.', 1), '.', rpad(split_part(last_cutoff, '.', 2), 7, '0')) = :last_cutoff
+ AND concat(split_part(new_cutoff, '.', 1), '.', rpad(split_part(new_cutoff, '.', 2), 7, '0')) = :new_cutoff)
  AND :drop = (SELECT max_by(drop, drop_index) FROM IDENTIFIER(:catalog || '.' || :bronze_schema || '.bronze_replay_log') WHERE status = 'PASS')
  AND (SELECT count(*) FROM golden_customer) = 403
  AND (SELECT count(*) FROM golden_customer WHERE customer_key = 0) = 1

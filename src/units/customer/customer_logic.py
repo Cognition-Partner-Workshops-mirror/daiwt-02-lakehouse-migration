@@ -32,7 +32,10 @@ def table_name(source):
 
 
 def window_sql(catalog, bronze_schema):
-    return (f"SELECT drop, last_cutoff, new_cutoff FROM `{catalog}`.`{bronze_schema}`.golden_drops "
+    cutoffs = ", ".join(
+        f"concat(split_part({column}, '.', 1), '.', rpad(split_part({column}, '.', 2), 7, '0')) AS {column}"
+        for column in ("last_cutoff", "new_cutoff"))
+    return (f"SELECT drop, {cutoffs} FROM `{catalog}`.`{bronze_schema}`.golden_drops "
             f"WHERE table_name = 'Customer' AND drop = (SELECT max_by(drop, drop_index) "
             f"FROM `{catalog}`.`{bronze_schema}`.bronze_replay_log WHERE status = 'PASS')")
 
