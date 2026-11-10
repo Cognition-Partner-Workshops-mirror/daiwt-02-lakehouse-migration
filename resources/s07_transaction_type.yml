@@ -1,0 +1,83 @@
+resources:
+  pipelines:
+    s07_transaction_type:
+      name: ${var.job_name_prefix}wwi_transaction_type_silver
+      catalog: ${var.catalog}
+      schema: ${var.silver_schema}
+      serverless: true
+      continuous: false
+      libraries:
+        - file:
+            path: ../src/s07/pipeline.sql
+      configuration:
+        s07.catalog: ${var.catalog}
+        s07.silver_schema: ${var.silver_schema}
+      permissions:
+        - group_name: users
+          level: CAN_VIEW
+  jobs:
+    wwi_transaction_type_to_silver:
+      name: ${var.job_name_prefix}wwi_transaction_type_to_silver
+      max_concurrent_runs: 1
+      permissions:
+        - group_name: users
+          level: CAN_VIEW
+      tasks:
+        - task_key: bronze_D0
+          notebook_task:
+            notebook_path: ../src/s07/replay.py
+            base_parameters: &bronze_params
+              catalog: ${var.catalog}
+              bronze_schema: ${var.bronze_schema}
+              silver_schema: ${var.silver_schema}
+              golden_path: ${var.golden_path}
+              drop: D0
+        - task_key: silver_D0
+          depends_on: [{task_key: bronze_D0}]
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.s07_transaction_type.id}
+        - task_key: parity_D0
+          depends_on: [{task_key: silver_D0}]
+          notebook_task:
+            notebook_path: ../src/s07/verify.py
+            base_parameters: &parity_params
+              catalog: ${var.catalog}
+              silver_schema: ${var.silver_schema}
+              golden_path: ${var.golden_path}
+              drop: D0
+        - task_key: bronze_D1
+          depends_on: [{task_key: parity_D0}]
+          notebook_task:
+            notebook_path: ../src/s07/replay.py
+            base_parameters:
+              <<: *bronze_params
+              drop: D1
+        - task_key: silver_D1
+          depends_on: [{task_key: bronze_D1}]
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.s07_transaction_type.id}
+        - task_key: parity_D1
+          depends_on: [{task_key: silver_D1}]
+          notebook_task:
+            notebook_path: ../src/s07/verify.py
+            base_parameters:
+              <<: *parity_params
+              drop: D1
+        - task_key: bronze_D2
+          depends_on: [{task_key: parity_D1}]
+          notebook_task:
+            notebook_path: ../src/s07/replay.py
+            base_parameters:
+              <<: *bronze_params
+              drop: D2
+        - task_key: silver_D2
+          depends_on: [{task_key: bronze_D2}]
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.s07_transaction_type.id}
+        - task_key: parity_D2
+          depends_on: [{task_key: silver_D2}]
+          notebook_task:
+            notebook_path: ../src/s07/verify.py
+            base_parameters:
+              <<: *parity_params
+              drop: D2
