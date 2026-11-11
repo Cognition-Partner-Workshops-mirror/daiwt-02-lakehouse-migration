@@ -1,0 +1,8 @@
+estate: daiwt_02
+source_dialect: tsql
+dev_catalog: daiwt_02_mig_dev
+prod_catalog: daiwt_02_mig_prod
+warehouse_id: 6dc4b80538621b7b
+golden_path: /Volumes/daiwt_02_mig_prod/migration_ci_fixtures/golden
+drops: [D0]
+legacy_repo: https://github.com/Cognition-Partner-Workshops-mirror/daiwt-02-enterprise-etl
