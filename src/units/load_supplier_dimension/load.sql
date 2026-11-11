@@ -36,6 +36,12 @@ WITH suppliers AS (
     INNER JOIN people p
         ON p.PersonID = s.PrimaryContactPersonID
        AND p.ValidFrom <= e.event_time AND e.event_time < p.ValidTo
+), supplier_dates AS (
+    SELECT DISTINCT SupplierID, ValidFrom FROM staged
+), supplier_intervals AS (
+    SELECT SupplierID, ValidFrom,
+           LEAD(ValidFrom) OVER (PARTITION BY SupplierID ORDER BY ValidFrom) AS next_valid_from
+    FROM supplier_dates
 ), initial_keys AS (
     SELECT * FROM VALUES
         (1, 1), (13, 2), (3, 3), (7, 4), (6, 5), (5, 6), (4, 7),
@@ -43,14 +49,14 @@ WITH suppliers AS (
     AS initial_keys(supplier_id, initial_key)
 ), versions AS (
     SELECT s.*,
-           (SELECT MIN(n.ValidFrom) FROM staged n
-            WHERE n.SupplierID = s.SupplierID AND n.ValidFrom > s.ValidFrom) AS next_valid_from,
+           i.next_valid_from,
            ROW_NUMBER() OVER (
                ORDER BY s.ValidFrom, s.event_time,
                    CASE WHEN s.ValidFrom = CAST('2013-01-01 00:00:00' AS TIMESTAMP_NTZ)
                         THEN k.initial_key ELSE s.SupplierID END
            ) AS supplier_key
     FROM staged s
+    LEFT JOIN supplier_intervals i ON i.SupplierID = s.SupplierID AND i.ValidFrom = s.ValidFrom
     LEFT JOIN initial_keys k ON k.supplier_id = s.SupplierID
 )
 SELECT CAST(supplier_key AS INT) AS supplier_key,
