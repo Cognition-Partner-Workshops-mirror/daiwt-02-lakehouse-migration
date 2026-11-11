@@ -1,0 +1,9 @@
+name: load_supplier_dimension
+layer: silver
+sql:
+  - load.sql
+outputs:
+  - table: silver.dim_supplier
+    golden: outputs/D0/tables/Dimension.Supplier.csv
+    keys:
+      - supplier_key
