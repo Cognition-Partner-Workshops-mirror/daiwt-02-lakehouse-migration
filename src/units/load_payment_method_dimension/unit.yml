@@ -1,0 +1,9 @@
+name: load_payment_method_dimension
+layer: silver
+sql:
+  - load.sql
+outputs:
+  - table: silver.dim_payment_method
+    golden: outputs/D0/tables/Dimension.Payment_Method.csv
+    keys:
+      - payment_method_key
