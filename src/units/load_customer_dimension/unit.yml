@@ -1,0 +1,9 @@
+name: load_customer_dimension
+layer: silver
+sql:
+  - load.sql
+outputs:
+  - table: silver.dim_customer
+    golden: outputs/D0/tables/Dimension.Customer.csv
+    keys:
+      - customer_key
