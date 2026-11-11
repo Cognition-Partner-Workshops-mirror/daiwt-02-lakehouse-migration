@@ -1,0 +1,8 @@
+name: load_transaction_type_dimension
+layer: silver
+sql:
+  - 001_dim_transaction_type.sql
+outputs:
+  - table: silver.dim_transaction_type
+    golden: outputs/D0/tables/Dimension.Transaction_Type.csv
+    keys: [transaction_type_key]
