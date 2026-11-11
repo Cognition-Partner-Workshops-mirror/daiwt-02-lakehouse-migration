@@ -1,0 +1,15 @@
+name: etl_control
+layer: silver
+# Deterministically restore the D0 baseline run, not a new load attempt.
+# Started/completed timestamps are that restored run's wall-clock values.
+# TIMESTAMP_NTZ retains microseconds from the legacy datetime2(7) values.
+sql:
+  - lineage.sql
+  - etl_cutoff.sql
+outputs:
+  - table: silver.integration_lineage
+    golden: outputs/D0/tables/Integration.Lineage.csv
+    keys: [lineage_key]
+  - table: silver.integration_etl_cutoff
+    golden: outputs/D0/tables/Integration.ETL_Cutoff.csv
+    keys: [table_name]
