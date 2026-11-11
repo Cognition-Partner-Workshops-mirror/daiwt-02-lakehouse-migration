@@ -171,10 +171,11 @@ units:
   - bronze.packagetypes
   - bronze.packagetypes_archive
   dialect_notes:
-  - Change events across Colors, PackageTypes, StockItems; re-read StockItems INNER JOIN PackageTypes (selling =
-    UnitPackageID, buying = OuterPackageID) LEFT JOIN Colors AS OF event; color NULL -> N/A, size/brand defaults
-    per proc. Keep decimal scales tax_rate(18,3), unit_price(18,2), recommended_retail_price(18,2), typical_weight_per_unit(18,3).
-    All non-zero rows carry lineage_key 5.
+  - Change events come from StockItems base+archive ValidFrom only (Colors/PackageTypes edits do not create versions);
+    for each event re-read StockItems INNER JOIN PackageTypes (selling = UnitPackageID, buying = OuterPackageID)
+    LEFT JOIN Colors AS OF that ValidFrom for attributes; valid_from = the StockItems ValidFrom; color NULL -> N/A,
+    size/brand defaults per proc. Keep decimal scales tax_rate(18,3), unit_price(18,2), recommended_retail_price(18,2),
+    typical_weight_per_unit(18,3). All non-zero rows carry lineage_key 5.
   - 'SCD2 as in MigrateStaged*Data: stage every change version, valid_to = next valid_from of the same WWI id else
     end-of-time; insert every staged version (no change detection, no dedup). Key 0 ''Unknown'' member (valid_from
     2013-01-01, valid_to end-of-time, lineage_key 0) is part of the golden. Keys follow staged order (valid_from,
