@@ -22,8 +22,10 @@ countries AS (
 ),
 events AS (
   SELECT 'country' AS scope, CountryID AS entity_id, ValidFrom AS valid_from FROM countries
+  WHERE ValidFrom <> '2013-01-01 00:00:00.0000000'
   UNION ALL
   SELECT 'state', StateProvinceID, ValidFrom FROM states
+  WHERE ValidFrom <> '2013-01-01 00:00:00.0000000'
   UNION ALL
   SELECT 'city', CityID, ValidFrom FROM cities
 ),
