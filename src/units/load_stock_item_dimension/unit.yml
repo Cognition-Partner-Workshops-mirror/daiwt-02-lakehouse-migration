@@ -1,0 +1,9 @@
+name: load_stock_item_dimension
+layer: silver
+sql:
+  - 01_dim_stock_item.sql
+outputs:
+  - table: silver.dim_stock_item
+    golden: outputs/D0/tables/Dimension.Stock_Item.csv
+    keys:
+      - stock_item_key
