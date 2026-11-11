@@ -1,0 +1,8 @@
+name: load_order_fact
+layer: gold
+sql:
+  - load.sql
+outputs:
+  - table: gold.fact_order
+    golden: outputs/D0/tables/Fact.Order.csv
+    keys: [order_key]
