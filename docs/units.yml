@@ -37,14 +37,15 @@ units:
     2013-01-01, valid_to end-of-time, lineage_key 0) is part of the golden. Keys follow staged order (valid_from,
     then WWI id); verify against golden.'
   - 'Golden D0 is the restored WideWorldImportersDW state at cutoff 2016-06-06 12:31:17 (one historical run per
-    entity, lineage keys 1-13). Rebuild it from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06 12:31:17].
-    Bronze inputs are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server
-    temporal ValidFrom/ValidTo; base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate
-    keys and lineage_key are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal
-    arithmetic only (never double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2
-    AS date) truncates. NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ
-    semantics); end-of-time is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary
-    -> uppercase hex string as landed. Integer IDs are the only join keys (collation irrelevant).'
+    entity, lineage keys 1-13). Default: rebuild from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06
+    12:31:17]; where a unit note says the golden departs from the replay, the golden is authoritative. Bronze inputs
+    are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server temporal ValidFrom/ValidTo;
+    base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate keys and lineage_key
+    are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal arithmetic only (never
+    double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2 AS date) truncates.
+    NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ semantics); end-of-time
+    is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary -> uppercase hex
+    string as landed. Integer IDs are the only join keys (collation irrelevant).'
 - name: load_customer_dimension
   layer: gold
   legacy_sources:
@@ -70,22 +71,25 @@ units:
   dialect_notes:
   - 'Change events across BuyingGroups, CustomerCategories, Customers; re-read Customers INNER JOIN CustomerCategories,
     INNER JOIN Customers bt (bill-to), INNER JOIN People (primary contact), LEFT JOIN BuyingGroups AS OF the event.
-    buying_group NULL -> N/A per proc. postal_code = DeliveryPostalCode. Golden has only 402 customers (all valid_from
-    2013-01-01) + key 0 although bronze.customers has 663 rows: reproduce the golden row set and confirm which customers
-    the window/joins exclude. All non-zero rows carry lineage_key 2.'
+    buying_group NULL -> N/A per proc. postal_code = DeliveryPostalCode. A full-window replay does NOT reproduce
+    this golden: it has exactly the 402 customers with non-NULL BuyingGroupID (IDs 1-601), one version each with
+    valid_from 2013-01-01, plus key 0; the 261 customers with NULL BuyingGroupID (IDs 801-1061) and the 51 archive
+    versions are absent. The golden membership/version rule is authoritative; confirm attribute values (current
+    vs as-of 2013-01-01) against the golden. All non-zero rows carry lineage_key 2.'
   - 'SCD2 as in MigrateStaged*Data: stage every change version, valid_to = next valid_from of the same WWI id else
     end-of-time; insert every staged version (no change detection, no dedup). Key 0 ''Unknown'' member (valid_from
     2013-01-01, valid_to end-of-time, lineage_key 0) is part of the golden. Keys follow staged order (valid_from,
     then WWI id); verify against golden.'
   - 'Golden D0 is the restored WideWorldImportersDW state at cutoff 2016-06-06 12:31:17 (one historical run per
-    entity, lineage keys 1-13). Rebuild it from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06 12:31:17].
-    Bronze inputs are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server
-    temporal ValidFrom/ValidTo; base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate
-    keys and lineage_key are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal
-    arithmetic only (never double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2
-    AS date) truncates. NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ
-    semantics); end-of-time is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary
-    -> uppercase hex string as landed. Integer IDs are the only join keys (collation irrelevant).'
+    entity, lineage keys 1-13). Default: rebuild from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06
+    12:31:17]; where a unit note says the golden departs from the replay, the golden is authoritative. Bronze inputs
+    are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server temporal ValidFrom/ValidTo;
+    base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate keys and lineage_key
+    are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal arithmetic only (never
+    double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2 AS date) truncates.
+    NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ semantics); end-of-time
+    is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary -> uppercase hex
+    string as landed. Integer IDs are the only join keys (collation irrelevant).'
 - name: load_employee_dimension
   layer: gold
   legacy_sources:
@@ -110,14 +114,15 @@ units:
     2013-01-01, valid_to end-of-time, lineage_key 0) is part of the golden. Keys follow staged order (valid_from,
     then WWI id); verify against golden.'
   - 'Golden D0 is the restored WideWorldImportersDW state at cutoff 2016-06-06 12:31:17 (one historical run per
-    entity, lineage keys 1-13). Rebuild it from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06 12:31:17].
-    Bronze inputs are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server
-    temporal ValidFrom/ValidTo; base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate
-    keys and lineage_key are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal
-    arithmetic only (never double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2
-    AS date) truncates. NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ
-    semantics); end-of-time is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary
-    -> uppercase hex string as landed. Integer IDs are the only join keys (collation irrelevant).'
+    entity, lineage keys 1-13). Default: rebuild from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06
+    12:31:17]; where a unit note says the golden departs from the replay, the golden is authoritative. Bronze inputs
+    are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server temporal ValidFrom/ValidTo;
+    base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate keys and lineage_key
+    are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal arithmetic only (never
+    double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2 AS date) truncates.
+    NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ semantics); end-of-time
+    is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary -> uppercase hex
+    string as landed. Integer IDs are the only join keys (collation irrelevant).'
 - name: load_payment_method_dimension
   layer: gold
   legacy_sources:
@@ -142,14 +147,15 @@ units:
     2013-01-01, valid_to end-of-time, lineage_key 0) is part of the golden. Keys follow staged order (valid_from,
     then WWI id); verify against golden.'
   - 'Golden D0 is the restored WideWorldImportersDW state at cutoff 2016-06-06 12:31:17 (one historical run per
-    entity, lineage keys 1-13). Rebuild it from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06 12:31:17].
-    Bronze inputs are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server
-    temporal ValidFrom/ValidTo; base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate
-    keys and lineage_key are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal
-    arithmetic only (never double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2
-    AS date) truncates. NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ
-    semantics); end-of-time is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary
-    -> uppercase hex string as landed. Integer IDs are the only join keys (collation irrelevant).'
+    entity, lineage keys 1-13). Default: rebuild from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06
+    12:31:17]; where a unit note says the golden departs from the replay, the golden is authoritative. Bronze inputs
+    are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server temporal ValidFrom/ValidTo;
+    base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate keys and lineage_key
+    are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal arithmetic only (never
+    double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2 AS date) truncates.
+    NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ semantics); end-of-time
+    is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary -> uppercase hex
+    string as landed. Integer IDs are the only join keys (collation irrelevant).'
 - name: load_stock_item_dimension
   layer: gold
   legacy_sources:
@@ -181,14 +187,15 @@ units:
     2013-01-01, valid_to end-of-time, lineage_key 0) is part of the golden. Keys follow staged order (valid_from,
     then WWI id); verify against golden.'
   - 'Golden D0 is the restored WideWorldImportersDW state at cutoff 2016-06-06 12:31:17 (one historical run per
-    entity, lineage keys 1-13). Rebuild it from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06 12:31:17].
-    Bronze inputs are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server
-    temporal ValidFrom/ValidTo; base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate
-    keys and lineage_key are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal
-    arithmetic only (never double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2
-    AS date) truncates. NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ
-    semantics); end-of-time is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary
-    -> uppercase hex string as landed. Integer IDs are the only join keys (collation irrelevant).'
+    entity, lineage keys 1-13). Default: rebuild from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06
+    12:31:17]; where a unit note says the golden departs from the replay, the golden is authoritative. Bronze inputs
+    are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server temporal ValidFrom/ValidTo;
+    base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate keys and lineage_key
+    are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal arithmetic only (never
+    double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2 AS date) truncates.
+    NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ semantics); end-of-time
+    is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary -> uppercase hex
+    string as landed. Integer IDs are the only join keys (collation irrelevant).'
 - name: load_supplier_dimension
   layer: gold
   legacy_sources:
@@ -218,14 +225,15 @@ units:
     2013-01-01, valid_to end-of-time, lineage_key 0) is part of the golden. Keys follow staged order (valid_from,
     then WWI id); verify against golden.'
   - 'Golden D0 is the restored WideWorldImportersDW state at cutoff 2016-06-06 12:31:17 (one historical run per
-    entity, lineage keys 1-13). Rebuild it from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06 12:31:17].
-    Bronze inputs are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server
-    temporal ValidFrom/ValidTo; base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate
-    keys and lineage_key are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal
-    arithmetic only (never double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2
-    AS date) truncates. NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ
-    semantics); end-of-time is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary
-    -> uppercase hex string as landed. Integer IDs are the only join keys (collation irrelevant).'
+    entity, lineage keys 1-13). Default: rebuild from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06
+    12:31:17]; where a unit note says the golden departs from the replay, the golden is authoritative. Bronze inputs
+    are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server temporal ValidFrom/ValidTo;
+    base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate keys and lineage_key
+    are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal arithmetic only (never
+    double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2 AS date) truncates.
+    NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ semantics); end-of-time
+    is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary -> uppercase hex
+    string as landed. Integer IDs are the only join keys (collation irrelevant).'
 - name: load_transaction_type_dimension
   layer: gold
   legacy_sources:
@@ -250,14 +258,15 @@ units:
     2013-01-01, valid_to end-of-time, lineage_key 0) is part of the golden. Keys follow staged order (valid_from,
     then WWI id); verify against golden.'
   - 'Golden D0 is the restored WideWorldImportersDW state at cutoff 2016-06-06 12:31:17 (one historical run per
-    entity, lineage keys 1-13). Rebuild it from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06 12:31:17].
-    Bronze inputs are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server
-    temporal ValidFrom/ValidTo; base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate
-    keys and lineage_key are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal
-    arithmetic only (never double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2
-    AS date) truncates. NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ
-    semantics); end-of-time is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary
-    -> uppercase hex string as landed. Integer IDs are the only join keys (collation irrelevant).'
+    entity, lineage keys 1-13). Default: rebuild from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06
+    12:31:17]; where a unit note says the golden departs from the replay, the golden is authoritative. Bronze inputs
+    are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server temporal ValidFrom/ValidTo;
+    base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate keys and lineage_key
+    are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal arithmetic only (never
+    double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2 AS date) truncates.
+    NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ semantics); end-of-time
+    is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary -> uppercase hex
+    string as landed. Integer IDs are the only join keys (collation irrelevant).'
 - name: ensure_date_dimension
   layer: gold
   legacy_sources:
@@ -279,14 +288,15 @@ units:
     = ISO week; day_number = day of month. Derive every attribute from the golden, then express as expressions,
     no literal table copy.'
   - 'Golden D0 is the restored WideWorldImportersDW state at cutoff 2016-06-06 12:31:17 (one historical run per
-    entity, lineage keys 1-13). Rebuild it from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06 12:31:17].
-    Bronze inputs are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server
-    temporal ValidFrom/ValidTo; base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate
-    keys and lineage_key are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal
-    arithmetic only (never double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2
-    AS date) truncates. NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ
-    semantics); end-of-time is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary
-    -> uppercase hex string as landed. Integer IDs are the only join keys (collation irrelevant).'
+    entity, lineage keys 1-13). Default: rebuild from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06
+    12:31:17]; where a unit note says the golden departs from the replay, the golden is authoritative. Bronze inputs
+    are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server temporal ValidFrom/ValidTo;
+    base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate keys and lineage_key
+    are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal arithmetic only (never
+    double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2 AS date) truncates.
+    NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ semantics); end-of-time
+    is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary -> uppercase hex
+    string as landed. Integer IDs are the only join keys (collation irrelevant).'
 - name: load_movement_fact
   layer: gold
   legacy_sources:
@@ -317,14 +327,15 @@ units:
     Holding): key = first dim row (ORDER BY valid_from) with same WWI id AND ts > valid_from AND ts <= valid_to
     (exclusive lower, inclusive upper), else 0; NULL id -> 0. lineage_key 8. MERGE on wwi_stock_item_transaction_id.'
   - 'Golden D0 is the restored WideWorldImportersDW state at cutoff 2016-06-06 12:31:17 (one historical run per
-    entity, lineage keys 1-13). Rebuild it from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06 12:31:17].
-    Bronze inputs are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server
-    temporal ValidFrom/ValidTo; base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate
-    keys and lineage_key are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal
-    arithmetic only (never double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2
-    AS date) truncates. NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ
-    semantics); end-of-time is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary
-    -> uppercase hex string as landed. Integer IDs are the only join keys (collation irrelevant).'
+    entity, lineage keys 1-13). Default: rebuild from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06
+    12:31:17]; where a unit note says the golden departs from the replay, the golden is authoritative. Bronze inputs
+    are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server temporal ValidFrom/ValidTo;
+    base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate keys and lineage_key
+    are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal arithmetic only (never
+    double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2 AS date) truncates.
+    NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ semantics); end-of-time
+    is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary -> uppercase hex
+    string as landed. Integer IDs are the only join keys (collation irrelevant).'
 - name: load_order_fact
   layer: gold
   legacy_sources:
@@ -360,14 +371,15 @@ units:
     dim row (ORDER BY valid_from) with same WWI id AND ts > valid_from AND ts <= valid_to (exclusive lower, inclusive
     upper), else 0; NULL id -> 0. lineage_key 9.'
   - 'Golden D0 is the restored WideWorldImportersDW state at cutoff 2016-06-06 12:31:17 (one historical run per
-    entity, lineage keys 1-13). Rebuild it from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06 12:31:17].
-    Bronze inputs are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server
-    temporal ValidFrom/ValidTo; base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate
-    keys and lineage_key are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal
-    arithmetic only (never double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2
-    AS date) truncates. NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ
-    semantics); end-of-time is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary
-    -> uppercase hex string as landed. Integer IDs are the only join keys (collation irrelevant).'
+    entity, lineage keys 1-13). Default: rebuild from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06
+    12:31:17]; where a unit note says the golden departs from the replay, the golden is authoritative. Bronze inputs
+    are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server temporal ValidFrom/ValidTo;
+    base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate keys and lineage_key
+    are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal arithmetic only (never
+    double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2 AS date) truncates.
+    NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ semantics); end-of-time
+    is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary -> uppercase hex
+    string as landed. Integer IDs are the only join keys (collation irrelevant).'
 - name: load_purchase_fact
   layer: gold
   legacy_sources:
@@ -398,14 +410,15 @@ units:
     > valid_from AND ts <= valid_to (exclusive lower, inclusive upper), else 0; NULL id -> 0. lineage_key 10. Legacy
     load = DELETE by WWI Purchase Order ID then INSERT staged rows.'
   - 'Golden D0 is the restored WideWorldImportersDW state at cutoff 2016-06-06 12:31:17 (one historical run per
-    entity, lineage keys 1-13). Rebuild it from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06 12:31:17].
-    Bronze inputs are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server
-    temporal ValidFrom/ValidTo; base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate
-    keys and lineage_key are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal
-    arithmetic only (never double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2
-    AS date) truncates. NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ
-    semantics); end-of-time is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary
-    -> uppercase hex string as landed. Integer IDs are the only join keys (collation irrelevant).'
+    entity, lineage keys 1-13). Default: rebuild from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06
+    12:31:17]; where a unit note says the golden departs from the replay, the golden is authoritative. Bronze inputs
+    are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server temporal ValidFrom/ValidTo;
+    base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate keys and lineage_key
+    are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal arithmetic only (never
+    double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2 AS date) truncates.
+    NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ semantics); end-of-time
+    is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary -> uppercase hex
+    string as landed. Integer IDs are the only join keys (collation irrelevant).'
 - name: load_sale_fact
   layer: gold
   legacy_sources:
@@ -444,14 +457,15 @@ units:
     same WWI id AND ts > valid_from AND ts <= valid_to (exclusive lower, inclusive upper), else 0; NULL id -> 0.
     ~84k rows get customer_key 0 by design. lineage_key 11.'
   - 'Golden D0 is the restored WideWorldImportersDW state at cutoff 2016-06-06 12:31:17 (one historical run per
-    entity, lineage keys 1-13). Rebuild it from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06 12:31:17].
-    Bronze inputs are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server
-    temporal ValidFrom/ValidTo; base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate
-    keys and lineage_key are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal
-    arithmetic only (never double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2
-    AS date) truncates. NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ
-    semantics); end-of-time is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary
-    -> uppercase hex string as landed. Integer IDs are the only join keys (collation irrelevant).'
+    entity, lineage keys 1-13). Default: rebuild from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06
+    12:31:17]; where a unit note says the golden departs from the replay, the golden is authoritative. Bronze inputs
+    are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server temporal ValidFrom/ValidTo;
+    base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate keys and lineage_key
+    are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal arithmetic only (never
+    double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2 AS date) truncates.
+    NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ semantics); end-of-time
+    is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary -> uppercase hex
+    string as landed. Integer IDs are the only join keys (collation irrelevant).'
 - name: load_stock_holding_fact
   layer: gold
   legacy_sources:
@@ -475,14 +489,15 @@ units:
     metadata says int but no cast is applied). stock_holding_key restarts at 1 in StockItemID order. lineage_key
     12.
   - 'Golden D0 is the restored WideWorldImportersDW state at cutoff 2016-06-06 12:31:17 (one historical run per
-    entity, lineage keys 1-13). Rebuild it from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06 12:31:17].
-    Bronze inputs are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server
-    temporal ValidFrom/ValidTo; base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate
-    keys and lineage_key are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal
-    arithmetic only (never double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2
-    AS date) truncates. NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ
-    semantics); end-of-time is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary
-    -> uppercase hex string as landed. Integer IDs are the only join keys (collation irrelevant).'
+    entity, lineage keys 1-13). Default: rebuild from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06
+    12:31:17]; where a unit note says the golden departs from the replay, the golden is authoritative. Bronze inputs
+    are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server temporal ValidFrom/ValidTo;
+    base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate keys and lineage_key
+    are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal arithmetic only (never
+    double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2 AS date) truncates.
+    NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ semantics); end-of-time
+    is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary -> uppercase hex
+    string as landed. Integer IDs are the only join keys (collation irrelevant).'
 - name: load_transaction_fact
   layer: gold
   legacy_sources:
@@ -516,14 +531,15 @@ units:
     with same WWI id AND ts > valid_from AND ts <= valid_to (exclusive lower, inclusive upper), else 0; NULL id
     -> 0. Insert-only append. lineage_key 13.'
   - 'Golden D0 is the restored WideWorldImportersDW state at cutoff 2016-06-06 12:31:17 (one historical run per
-    entity, lineage keys 1-13). Rebuild it from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06 12:31:17].
-    Bronze inputs are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server
-    temporal ValidFrom/ValidTo; base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate
-    keys and lineage_key are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal
-    arithmetic only (never double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2
-    AS date) truncates. NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ
-    semantics); end-of-time is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary
-    -> uppercase hex string as landed. Integer IDs are the only join keys (collation irrelevant).'
+    entity, lineage keys 1-13). Default: rebuild from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06
+    12:31:17]; where a unit note says the golden departs from the replay, the golden is authoritative. Bronze inputs
+    are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server temporal ValidFrom/ValidTo;
+    base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate keys and lineage_key
+    are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal arithmetic only (never
+    double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2 AS date) truncates.
+    NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ semantics); end-of-time
+    is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary -> uppercase hex
+    string as landed. Integer IDs are the only join keys (collation irrelevant).'
 - name: etl_control
   layer: gold
   legacy_sources:
@@ -550,14 +566,15 @@ units:
     restored baseline (listed nondeterministic by the manifest, but offline parity is strict): agree with the platform
     owner how to represent them before building.'
   - 'Golden D0 is the restored WideWorldImportersDW state at cutoff 2016-06-06 12:31:17 (one historical run per
-    entity, lineage keys 1-13). Rebuild it from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06 12:31:17].
-    Bronze inputs are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server
-    temporal ValidFrom/ValidTo; base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate
-    keys and lineage_key are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal
-    arithmetic only (never double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2
-    AS date) truncates. NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ
-    semantics); end-of-time is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary
-    -> uppercase hex string as landed. Integer IDs are the only join keys (collation irrelevant).'
+    entity, lineage keys 1-13). Default: rebuild from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06
+    12:31:17]; where a unit note says the golden departs from the replay, the golden is authoritative. Bronze inputs
+    are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server temporal ValidFrom/ValidTo;
+    base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate keys and lineage_key
+    are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal arithmetic only (never
+    double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2 AS date) truncates.
+    NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ semantics); end-of-time
+    is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary -> uppercase hex
+    string as landed. Integer IDs are the only join keys (collation irrelevant).'
 - name: report_sale_by_day
   layer: gold
   legacy_sources:
@@ -576,14 +593,15 @@ units:
     no rounding) FROM gold.fact_sale GROUP BY invoice_date_key. No filter (includes key-0 customers and credit notes);
     only dates with sales (1,069 rows).
   - 'Golden D0 is the restored WideWorldImportersDW state at cutoff 2016-06-06 12:31:17 (one historical run per
-    entity, lineage keys 1-13). Rebuild it from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06 12:31:17].
-    Bronze inputs are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server
-    temporal ValidFrom/ValidTo; base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate
-    keys and lineage_key are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal
-    arithmetic only (never double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2
-    AS date) truncates. NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ
-    semantics); end-of-time is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary
-    -> uppercase hex string as landed. Integer IDs are the only join keys (collation irrelevant).'
+    entity, lineage keys 1-13). Default: rebuild from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06
+    12:31:17]; where a unit note says the golden departs from the replay, the golden is authoritative. Bronze inputs
+    are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server temporal ValidFrom/ValidTo;
+    base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate keys and lineage_key
+    are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal arithmetic only (never
+    double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2 AS date) truncates.
+    NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ semantics); end-of-time
+    is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary -> uppercase hex
+    string as landed. Integer IDs are the only join keys (collation irrelevant).'
 - name: report_customer_history
   layer: gold
   legacy_sources:
@@ -601,11 +619,12 @@ units:
   - SELECT customer_key, wwi_customer_id, customer, valid_from, valid_to FROM gold.dim_customer, no filter, includes
     key 0 (403 rows). Row order is irrelevant to parity.
   - 'Golden D0 is the restored WideWorldImportersDW state at cutoff 2016-06-06 12:31:17 (one historical run per
-    entity, lineage keys 1-13). Rebuild it from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06 12:31:17].
-    Bronze inputs are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server
-    temporal ValidFrom/ValidTo; base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate
-    keys and lineage_key are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal
-    arithmetic only (never double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2
-    AS date) truncates. NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ
-    semantics); end-of-time is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary
-    -> uppercase hex string as landed. Integer IDs are the only join keys (collation irrelevant).'
+    entity, lineage keys 1-13). Default: rebuild from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06
+    12:31:17]; where a unit note says the golden departs from the replay, the golden is authoritative. Bronze inputs
+    are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server temporal ValidFrom/ValidTo;
+    base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate keys and lineage_key
+    are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal arithmetic only (never
+    double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2 AS date) truncates.
+    NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ semantics); end-of-time
+    is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary -> uppercase hex
+    string as landed. Integer IDs are the only join keys (collation irrelevant).'
