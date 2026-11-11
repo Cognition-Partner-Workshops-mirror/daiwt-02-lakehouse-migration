@@ -1,0 +1,8 @@
+name: report_sale_by_day
+layer: gold
+sql:
+  - 01_report_sale_by_day.sql
+outputs:
+  - table: gold.report_sale_by_day
+    golden: outputs/D0/reports/sale-by-day.csv
+    keys: [invoice_date_key]
