@@ -15,11 +15,11 @@ SELECT
     CAST(ROW_NUMBER() OVER (ORDER BY ValidFrom, CAST(TransactionTypeID AS INT)) AS INT) AS transaction_type_key,
     CAST(TransactionTypeID AS INT) AS wwi_transaction_type_id,
     CAST(TransactionTypeName AS STRING) AS transaction_type,
-    CAST(ValidFrom AS STRING) AS valid_from,
-    CAST(COALESCE(
-        LEAD(ValidFrom) OVER (PARTITION BY TransactionTypeID ORDER BY ValidFrom),
-        '9999-12-31 23:59:59.9999999'
-    ) AS STRING) AS valid_to,
+    CAST(ValidFrom AS TIMESTAMP_NTZ) AS valid_from,
+    COALESCE(
+        CAST(LEAD(ValidFrom) OVER (PARTITION BY TransactionTypeID ORDER BY ValidFrom) AS TIMESTAMP_NTZ),
+        CAST('9999-12-31 23:59:59.999999' AS TIMESTAMP_NTZ)
+    ) AS valid_to,
     CAST(7 AS INT) AS lineage_key
 FROM staged
 UNION ALL
@@ -27,6 +27,6 @@ SELECT
     CAST(0 AS INT) AS transaction_type_key,
     CAST(0 AS INT) AS wwi_transaction_type_id,
     CAST('Unknown' AS STRING) AS transaction_type,
-    CAST('2013-01-01 00:00:00.0000000' AS STRING) AS valid_from,
-    CAST('9999-12-31 23:59:59.9999999' AS STRING) AS valid_to,
+    CAST('2013-01-01 00:00:00' AS TIMESTAMP_NTZ) AS valid_from,
+    CAST('9999-12-31 23:59:59.999999' AS TIMESTAMP_NTZ) AS valid_to,
     CAST(0 AS INT) AS lineage_key;
