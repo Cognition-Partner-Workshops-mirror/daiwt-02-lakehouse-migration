@@ -26,6 +26,10 @@ D0, uses list-based file metadata, maps all 18 output CSVs to tables using the
 legacy parity contract, and uses lowercase source basenames for bronze tables.
 All 56 CSV files retain their original contents and SHA-256 checksums. The
 original `/Volumes/daiwt_02_mig_prod/landing/golden` is never overwritten.
+Column types come from the legacy SQL Server SSDT DDL, with per-column source
+references recorded in the normalized manifest. Report types follow the legacy
+report queries. Spatial WKT, binary hex and computed JSON/text remain strings;
+numeric, boolean, date and timestamp columns use portable framework types.
 
 This baseline intentionally configures **D0 only**. It does not implement or run
 D1/D2 cumulative replay. Understand and Migrate are separate later demo steps.
