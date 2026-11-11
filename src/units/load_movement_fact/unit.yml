@@ -1,7 +1,16 @@
 name: load_movement_fact
 layer: gold
 sql:
-  - 01_fact_movement.sql
+  - 01_create_movement_key_map.sql
+  - 02_insert_movement_key_map.sql
+  - 03_insert_movement_key_map.sql
+  - 04_insert_movement_key_map.sql
+  - 05_insert_movement_key_map.sql
+  - 06_insert_movement_key_map.sql
+  - 07_insert_movement_key_map.sql
+  - 08_insert_movement_key_map.sql
+  - 09_insert_movement_key_map.sql
+  - 10_fact_movement.sql
 outputs:
   - table: gold.fact_movement
     golden: outputs/D0/tables/Fact.Movement.csv
