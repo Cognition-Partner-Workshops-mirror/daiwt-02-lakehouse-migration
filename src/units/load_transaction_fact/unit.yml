@@ -1,0 +1,9 @@
+name: load_transaction_fact
+layer: gold
+sql:
+  - load.sql
+outputs:
+  - table: gold.fact_transaction
+    golden: outputs/D0/tables/Fact.Transaction.csv
+    keys:
+      - transaction_key
