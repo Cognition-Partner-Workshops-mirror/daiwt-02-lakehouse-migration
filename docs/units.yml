@@ -1,20 +1,20 @@
 # Golden paths are relative to estate.yml golden_path. D0 only.
-# Legacy sources are relative to daiwt-02-enterprise-etl. All 18 golden outputs are DW (gold) tables;
-# there are no Silver goldens, so every unit is gold (see docs/estate_map.md).
+# Legacy sources are relative to daiwt-02-enterprise-etl. Two parallel waves (see docs/estate_map.md):
+# silver = 9 independent dimension/control loads; gold = 6 facts + 2 reports that read them.
 estate: daiwt_02
 source_dialect: tsql
 drops:
 - D0
 units:
 - name: load_city_dimension
-  layer: gold
+  layer: silver
   legacy_sources:
   - wwi-ssdt/wwi-ssdt/Integration/Stored Procedures/GetCityUpdates.sql
   - wwi-dw-ssdt/wwi-dw-ssdt/Integration/Stored Procedures/MigrateStagedCityData.sql
   - wwi-dw-ssdt/wwi-dw-ssdt/Dimension/Tables/City.sql
   - wwi-ssis/wwi-ssis/DailyETLMain.dtsx
   outputs:
-  - table: gold.dim_city
+  - table: silver.dim_city
     golden: outputs/D0/tables/Dimension.City.csv
     keys:
     - city_key
@@ -47,14 +47,14 @@ units:
     is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary -> uppercase hex
     string as landed. Integer IDs are the only join keys (collation irrelevant).'
 - name: load_customer_dimension
-  layer: gold
+  layer: silver
   legacy_sources:
   - wwi-ssdt/wwi-ssdt/Integration/Stored Procedures/GetCustomerUpdates.sql
   - wwi-dw-ssdt/wwi-dw-ssdt/Integration/Stored Procedures/MigrateStagedCustomerData.sql
   - wwi-dw-ssdt/wwi-dw-ssdt/Dimension/Tables/Customer.sql
   - wwi-ssis/wwi-ssis/DailyETLMain.dtsx
   outputs:
-  - table: gold.dim_customer
+  - table: silver.dim_customer
     golden: outputs/D0/tables/Dimension.Customer.csv
     keys:
     - customer_key
@@ -91,14 +91,14 @@ units:
     is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary -> uppercase hex
     string as landed. Integer IDs are the only join keys (collation irrelevant).'
 - name: load_employee_dimension
-  layer: gold
+  layer: silver
   legacy_sources:
   - wwi-ssdt/wwi-ssdt/Integration/Stored Procedures/GetEmployeeUpdates.sql
   - wwi-dw-ssdt/wwi-dw-ssdt/Integration/Stored Procedures/MigrateStagedEmployeeData.sql
   - wwi-dw-ssdt/wwi-dw-ssdt/Dimension/Tables/Employee.sql
   - wwi-ssis/wwi-ssis/DailyETLMain.dtsx
   outputs:
-  - table: gold.dim_employee
+  - table: silver.dim_employee
     golden: outputs/D0/tables/Dimension.Employee.csv
     keys:
     - employee_key
@@ -124,14 +124,14 @@ units:
     is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary -> uppercase hex
     string as landed. Integer IDs are the only join keys (collation irrelevant).'
 - name: load_payment_method_dimension
-  layer: gold
+  layer: silver
   legacy_sources:
   - wwi-ssdt/wwi-ssdt/Integration/Stored Procedures/GetPaymentMethodUpdates.sql
   - wwi-dw-ssdt/wwi-dw-ssdt/Integration/Stored Procedures/MigrateStagedPaymentMethodData.sql
   - wwi-dw-ssdt/wwi-dw-ssdt/Dimension/Tables/Payment Method.sql
   - wwi-ssis/wwi-ssis/DailyETLMain.dtsx
   outputs:
-  - table: gold.dim_payment_method
+  - table: silver.dim_payment_method
     golden: outputs/D0/tables/Dimension.Payment_Method.csv
     keys:
     - payment_method_key
@@ -157,14 +157,14 @@ units:
     is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary -> uppercase hex
     string as landed. Integer IDs are the only join keys (collation irrelevant).'
 - name: load_stock_item_dimension
-  layer: gold
+  layer: silver
   legacy_sources:
   - wwi-ssdt/wwi-ssdt/Integration/Stored Procedures/GetStockItemUpdates.sql
   - wwi-dw-ssdt/wwi-dw-ssdt/Integration/Stored Procedures/MigrateStagedStockItemData.sql
   - wwi-dw-ssdt/wwi-dw-ssdt/Dimension/Tables/Stock Item.sql
   - wwi-ssis/wwi-ssis/DailyETLMain.dtsx
   outputs:
-  - table: gold.dim_stock_item
+  - table: silver.dim_stock_item
     golden: outputs/D0/tables/Dimension.Stock_Item.csv
     keys:
     - stock_item_key
@@ -197,14 +197,14 @@ units:
     is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary -> uppercase hex
     string as landed. Integer IDs are the only join keys (collation irrelevant).'
 - name: load_supplier_dimension
-  layer: gold
+  layer: silver
   legacy_sources:
   - wwi-ssdt/wwi-ssdt/Integration/Stored Procedures/GetSupplierUpdates.sql
   - wwi-dw-ssdt/wwi-dw-ssdt/Integration/Stored Procedures/MigrateStagedSupplierData.sql
   - wwi-dw-ssdt/wwi-dw-ssdt/Dimension/Tables/Supplier.sql
   - wwi-ssis/wwi-ssis/DailyETLMain.dtsx
   outputs:
-  - table: gold.dim_supplier
+  - table: silver.dim_supplier
     golden: outputs/D0/tables/Dimension.Supplier.csv
     keys:
     - supplier_key
@@ -235,14 +235,14 @@ units:
     is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary -> uppercase hex
     string as landed. Integer IDs are the only join keys (collation irrelevant).'
 - name: load_transaction_type_dimension
-  layer: gold
+  layer: silver
   legacy_sources:
   - wwi-ssdt/wwi-ssdt/Integration/Stored Procedures/GetTransactionTypeUpdates.sql
   - wwi-dw-ssdt/wwi-dw-ssdt/Integration/Stored Procedures/MigrateStagedTransactionTypeData.sql
   - wwi-dw-ssdt/wwi-dw-ssdt/Dimension/Tables/Transaction Type.sql
   - wwi-ssis/wwi-ssis/DailyETLMain.dtsx
   outputs:
-  - table: gold.dim_transaction_type
+  - table: silver.dim_transaction_type
     golden: outputs/D0/tables/Dimension.Transaction_Type.csv
     keys:
     - transaction_type_key
@@ -268,14 +268,14 @@ units:
     is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary -> uppercase hex
     string as landed. Integer IDs are the only join keys (collation irrelevant).'
 - name: ensure_date_dimension
-  layer: gold
+  layer: silver
   legacy_sources:
   - wwi-dw-ssdt/wwi-dw-ssdt/Integration/Stored Procedures/PopulateDateDimensionForYear.sql
   - wwi-dw-ssdt/wwi-dw-ssdt/Integration/Functions/GenerateDateDimensionColumns.sql
   - wwi-dw-ssdt/wwi-dw-ssdt/Dimension/Tables/Date.sql
   - wwi-ssis/wwi-ssis/DailyETLMain.dtsx
   outputs:
-  - table: gold.dim_date
+  - table: silver.dim_date
     golden: outputs/D0/tables/Dimension.Date.csv
     keys:
     - date
@@ -287,6 +287,41 @@ units:
     calendar year + 1 for Nov/Dec); labels like CY2013 / FY2013 / Jan 2013 must match golden text exactly; iso_week_number
     = ISO week; day_number = day of month. Derive every attribute from the golden, then express as expressions,
     no literal table copy.'
+  - 'Golden D0 is the restored WideWorldImportersDW state at cutoff 2016-06-06 12:31:17 (one historical run per
+    entity, lineage keys 1-13). Default: rebuild from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06
+    12:31:17]; where a unit note says the golden departs from the replay, the golden is authoritative. Bronze inputs
+    are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server temporal ValidFrom/ValidTo;
+    base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate keys and lineage_key
+    are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal arithmetic only (never
+    double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2 AS date) truncates.
+    NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ semantics); end-of-time
+    is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary -> uppercase hex
+    string as landed. Integer IDs are the only join keys (collation irrelevant).'
+- name: etl_control
+  layer: silver
+  legacy_sources:
+  - wwi-dw-ssdt/wwi-dw-ssdt/Integration/Stored Procedures/GetLineageKey.sql
+  - wwi-dw-ssdt/wwi-dw-ssdt/Integration/Stored Procedures/GetLastETLCutoffTime.sql
+  - wwi-dw-ssdt/wwi-dw-ssdt/Integration/Tables/Lineage.sql
+  - wwi-dw-ssdt/wwi-dw-ssdt/Integration/Tables/ETL Cutoff.sql
+  - wwi-ssis/wwi-ssis/DailyETLMain.dtsx
+  outputs:
+  - table: silver.integration_lineage
+    golden: outputs/D0/tables/Integration.Lineage.csv
+    keys:
+    - lineage_key
+  - table: silver.integration_etl_cutoff
+    golden: outputs/D0/tables/Integration.ETL_Cutoff.csv
+    keys:
+    - table_name
+  depends_on: []
+  reads: []
+  dialect_notes:
+  - 'One Lineage row per entity in package order (City .. Transaction = keys 1..13) with was_successful = 1 and
+    source_system_cutoff_time = run cutoff 2016-06-06 12:31:17; ETL Cutoff has 14 rows: the 13 entities advance
+    to the run cutoff, Date stays 2012-12-31 00:00:00. data_load_started/completed are wall-clock values of the
+    restored baseline (listed nondeterministic by the manifest, but offline parity is strict): agree with the platform
+    owner how to represent them before building.'
   - 'Golden D0 is the restored WideWorldImportersDW state at cutoff 2016-06-06 12:31:17 (one historical run per
     entity, lineage keys 1-13). Default: rebuild from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06
     12:31:17]; where a unit note says the golden departs from the replay, the golden is authoritative. Bronze inputs
@@ -316,10 +351,10 @@ units:
   - load_transaction_type_dimension
   reads:
   - bronze.stockitemtransactions
-  - gold.dim_stock_item
-  - gold.dim_customer
-  - gold.dim_supplier
-  - gold.dim_transaction_type
+  - silver.dim_stock_item
+  - silver.dim_customer
+  - silver.dim_supplier
+  - silver.dim_transaction_type
   dialect_notes:
   - 'One row per StockItemTransaction (236,667). date_key = CAST(TransactionOccurredWhen AS date); quantity = CAST(Quantity
     AS int) (truncate). The 10th extract column is TransactionOccurredWhen and lands positionally in staging [Last
@@ -358,10 +393,10 @@ units:
   - bronze.orderlines
   - bronze.packagetypes
   - bronze.customers
-  - gold.dim_city
-  - gold.dim_customer
-  - gold.dim_stock_item
-  - gold.dim_employee
+  - silver.dim_city
+  - silver.dim_customer
+  - silver.dim_stock_item
+  - silver.dim_employee
   dialect_notes:
   - 'Orders INNER JOIN OrderLines INNER JOIN PackageTypes INNER JOIN Customers (231,412 lines). Lookup ts = GREATEST(o.LastEditedWhen,
     ol.LastEditedWhen). wwi city = customer CURRENT DeliveryCityID. salesperson_key and picker_key both look up
@@ -400,8 +435,8 @@ units:
   - bronze.purchaseorderlines
   - bronze.stockitems
   - bronze.packagetypes
-  - gold.dim_supplier
-  - gold.dim_stock_item
+  - silver.dim_supplier
+  - silver.dim_stock_item
   dialect_notes:
   - 'PurchaseOrders INNER JOIN PurchaseOrderLines INNER JOIN StockItems INNER JOIN PackageTypes (8,367 lines). date_key
     = CAST(OrderDate AS date); ordered_quantity = OrderedOuters * current QuantityPerOuter (int); is_order_finalized
@@ -442,10 +477,10 @@ units:
   - bronze.stockitems
   - bronze.packagetypes
   - bronze.customers
-  - gold.dim_city
-  - gold.dim_customer
-  - gold.dim_stock_item
-  - gold.dim_employee
+  - silver.dim_city
+  - silver.dim_customer
+  - silver.dim_stock_item
+  - silver.dim_employee
   dialect_notes:
   - 'Invoices INNER JOIN InvoiceLines INNER JOIN StockItems INNER JOIN PackageTypes INNER JOIN Customers c INNER
     JOIN Customers bt (228,265 lines), extract order InvoiceID, InvoiceLineID. invoice_date_key = CAST(InvoiceDate
@@ -482,7 +517,7 @@ units:
   - load_stock_item_dimension
   reads:
   - bronze.stockitemholdings
-  - gold.dim_stock_item
+  - silver.dim_stock_item
   dialect_notes:
   - Full snapshot of StockItemHoldings every run (227 rows, no window), TRUNCATE + INSERT. stock_item_key = latest
     dim version (TOP 1 ORDER BY valid_to DESC, no time window), else 0. last_cost_price stays decimal(18,2) (result-set
@@ -519,10 +554,10 @@ units:
   - bronze.customertransactions
   - bronze.invoices
   - bronze.suppliertransactions
-  - gold.dim_customer
-  - gold.dim_supplier
-  - gold.dim_transaction_type
-  - gold.dim_payment_method
+  - silver.dim_customer
+  - silver.dim_supplier
+  - silver.dim_transaction_type
+  - silver.dim_payment_method
   dialect_notes:
   - 'CustomerTransactions LEFT JOIN Invoices UNION ALL SupplierTransactions (97,147 + 2,438 = 99,585). Customer
     half: wwi customer = COALESCE(i.CustomerID, ct.CustomerID), bill-to = ct.CustomerID, supplier columns NULL;
@@ -530,41 +565,6 @@ units:
     Lookup ts = row LastEditedWhen. Lookup rule (all facts but Stock Holding): key = first dim row (ORDER BY valid_from)
     with same WWI id AND ts > valid_from AND ts <= valid_to (exclusive lower, inclusive upper), else 0; NULL id
     -> 0. Insert-only append. lineage_key 13.'
-  - 'Golden D0 is the restored WideWorldImportersDW state at cutoff 2016-06-06 12:31:17 (one historical run per
-    entity, lineage keys 1-13). Default: rebuild from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06
-    12:31:17]; where a unit note says the golden departs from the replay, the golden is authoritative. Bronze inputs
-    are bronze.<lowercase OLTP table> (e.g. bronze.cities, bronze.cities_archive) with SQL Server temporal ValidFrom/ValidTo;
-    base UNION ALL _Archive gives history, AS OF t means ValidFrom <= t < ValidTo. Surrogate keys and lineage_key
-    are compared strictly: reproduce golden values, never sequence-generate blindly. Decimal arithmetic only (never
-    double), ROUND is half-away-from-zero, CAST(decimal AS int) truncates toward zero, CAST(datetime2 AS date) truncates.
-    NULL is \N; empty string is not NULL. Timestamps are naive datetime2(7) (use TIMESTAMP_NTZ semantics); end-of-time
-    is 9999-12-31 23:59:59.9999999. bit -> boolean, geography -> WKT string as landed, varbinary -> uppercase hex
-    string as landed. Integer IDs are the only join keys (collation irrelevant).'
-- name: etl_control
-  layer: gold
-  legacy_sources:
-  - wwi-dw-ssdt/wwi-dw-ssdt/Integration/Stored Procedures/GetLineageKey.sql
-  - wwi-dw-ssdt/wwi-dw-ssdt/Integration/Stored Procedures/GetLastETLCutoffTime.sql
-  - wwi-dw-ssdt/wwi-dw-ssdt/Integration/Tables/Lineage.sql
-  - wwi-dw-ssdt/wwi-dw-ssdt/Integration/Tables/ETL Cutoff.sql
-  - wwi-ssis/wwi-ssis/DailyETLMain.dtsx
-  outputs:
-  - table: gold.integration_lineage
-    golden: outputs/D0/tables/Integration.Lineage.csv
-    keys:
-    - lineage_key
-  - table: gold.integration_etl_cutoff
-    golden: outputs/D0/tables/Integration.ETL_Cutoff.csv
-    keys:
-    - table_name
-  depends_on: []
-  reads: []
-  dialect_notes:
-  - 'One Lineage row per entity in package order (City .. Transaction = keys 1..13) with was_successful = 1 and
-    source_system_cutoff_time = run cutoff 2016-06-06 12:31:17; ETL Cutoff has 14 rows: the 13 entities advance
-    to the run cutoff, Date stays 2012-12-31 00:00:00. data_load_started/completed are wall-clock values of the
-    restored baseline (listed nondeterministic by the manifest, but offline parity is strict): agree with the platform
-    owner how to represent them before building.'
   - 'Golden D0 is the restored WideWorldImportersDW state at cutoff 2016-06-06 12:31:17 (one historical run per
     entity, lineage keys 1-13). Default: rebuild from D0 bronze as a single window (2012-12-31 00:00, 2016-06-06
     12:31:17]; where a unit note says the golden departs from the replay, the golden is authoritative. Bronze inputs
@@ -614,7 +614,7 @@ units:
   depends_on:
   - load_customer_dimension
   reads:
-  - gold.dim_customer
+  - silver.dim_customer
   dialect_notes:
   - SELECT customer_key, wwi_customer_id, customer, valid_from, valid_to FROM gold.dim_customer, no filter, includes
     key 0 (403 rows). Row order is irrelevant to parity.
