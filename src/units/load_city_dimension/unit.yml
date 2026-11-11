@@ -1,0 +1,8 @@
+name: load_city_dimension
+layer: silver
+sql:
+  - 01_dim_city.sql
+outputs:
+  - table: silver.dim_city
+    golden: outputs/D0/tables/Dimension.City.csv
+    keys: [city_key]
