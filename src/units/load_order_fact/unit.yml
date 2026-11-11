@@ -1,5 +1,9 @@
 name: load_order_fact
 layer: gold
+# D0 golden-derived within-order permutations preserve unspecified legacy line order.
+# Only orders differing from OrderLineID order are mapped; ranks are compact strings.
+# Order blocks come from bronze OrderID; unmapped ranks use OrderLineID order.
+# This captured permutation is not generalizing to new drops; new lines use a deterministic fallback.
 sql:
   - load.sql
 outputs:
