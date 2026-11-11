@@ -1,0 +1,9 @@
+name: load_stock_holding_fact
+layer: gold
+sql:
+  - 01_fact_stock_holding.sql
+outputs:
+  - table: gold.fact_stock_holding
+    golden: outputs/D0/tables/Fact.Stock_Holding.csv
+    keys:
+      - stock_holding_key

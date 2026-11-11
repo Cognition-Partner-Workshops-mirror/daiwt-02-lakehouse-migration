@@ -1,0 +1,9 @@
+name: load_purchase_fact
+layer: gold
+sql:
+  - load.sql
+outputs:
+  - table: gold.fact_purchase
+    golden: outputs/D0/tables/Fact.Purchase.csv
+    keys:
+      - purchase_key

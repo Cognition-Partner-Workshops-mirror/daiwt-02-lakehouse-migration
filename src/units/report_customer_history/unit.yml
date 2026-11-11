@@ -1,0 +1,9 @@
+name: report_customer_history
+layer: gold
+sql:
+  - report.sql
+outputs:
+  - table: gold.report_customer_history
+    golden: outputs/D0/reports/customer-history.csv
+    keys:
+      - customer_key
