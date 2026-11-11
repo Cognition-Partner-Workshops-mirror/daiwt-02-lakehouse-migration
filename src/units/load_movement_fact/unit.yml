@@ -1,0 +1,9 @@
+name: load_movement_fact
+layer: gold
+sql:
+  - 01_fact_movement.sql
+outputs:
+  - table: gold.fact_movement
+    golden: outputs/D0/tables/Fact.Movement.csv
+    keys:
+      - movement_key
